@@ -1,5 +1,5 @@
-const { SerialPort } = require('serialport'); // Utilise la déstructuration
-const axios = require('axios'); // Pour les requêtes HTTP vers Laravel
+const { SerialPort } = require('serialport');
+const axios = require('axios');
 const express = require('express');
 const app = express();
 const port = 3000;
@@ -10,40 +10,46 @@ const serialPort = new SerialPort({
   baudRate: 9600
 });
 
-// Adresse de votre API Laravel
+// Adresse de l'API Laravel
 const laravelAPI = 'http://localhost:8000/api/pointages/pointer';
 
-// Cette fonction écoute les données du port série
-serialPort.on('data', async function(data) {
-  const uid = data.toString().trim(); // Enlever les espaces inutiles autour de l'UID
+// Écoute des données reçues de l'Arduino
+serialPort.on('data', async function (data) {
+  const uid = data.toString().trim(); // Nettoyer l'UID reçu
   console.log('UID reçu de l\'Arduino:', uid);
 
   try {
-    // Envoyer une requête POST à l'API Laravel avec l'UID
+    // Requête à l'API Laravel
     const response = await axios.post(laravelAPI, {
-      cardId: uid // UID envoyé au backend Laravel
+      cardId: uid, // Envoi de l'UID au backend Laravel
     });
 
     console.log('Réponse de l\'API Laravel:', response.data);
 
-    // Réponse envoyée à l'Arduino en fonction de l'état
+    // Répondre à l'Arduino en fonction de la validation
     if (response.data.status) {
-      serialPort.write('valid\n'); // Réponse pour accès validé
+      serialPort.write('valid\n'); // Réponse pour carte valide
     } else {
-      serialPort.write('invalid\n'); // Réponse pour accès refusé
+      serialPort.write('invalid\n'); // Réponse pour carte invalide
     }
   } catch (error) {
-    console.error('Erreur lors de la communication avec l\'API Laravel:', error.message);
-    serialPort.write('error\n'); // Réponse pour erreur serveur
+    // Gestion des erreurs de réponse
+    if (error.response && error.response.status === 403) {
+      console.log('Accès refusé: Carte non reconnue ou inactive');
+      serialPort.write('invalid\n'); // Réponse pour carte non attribuée ou refusée
+    } else {
+      console.error('Erreur lors de la communication avec l\'API Laravel:', error.message);
+      serialPort.write('error\n'); // Réponse pour erreur serveur ou autre
+    }
   }
 });
 
-// Démarre un serveur Express simple
+// Démarrage d'un serveur Express simple
 app.get('/', (req, res) => {
   res.send('Serveur Node.js en fonctionnement');
 });
 
-// Démarrage du serveur Express
+// Lancer le serveur Express
 app.listen(port, () => {
   console.log(`Serveur en écoute sur le port ${port}`);
 });
