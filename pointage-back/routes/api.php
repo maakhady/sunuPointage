@@ -14,14 +14,10 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
-
 
 use App\Http\Controllers\CohorteController;
 
-Route::middleware('jwt.admin')->group(function () {
+// Route::middleware('jwt.admin')->group(function () {
     Route::group(['prefix' => 'cohortes'], function () {
         Route::get('/', [CohorteController::class, 'index']); 
         Route::post('/', [CohorteController::class, 'store']);  
@@ -29,7 +25,28 @@ Route::middleware('jwt.admin')->group(function () {
         Route::put('/{id}', [CohorteController::class, 'update']);
         Route::delete('/{id}', [CohorteController::class, 'destroy']);
     });
+// });
+
+
+
+//Departement
+use App\Http\Controllers\DepartementController;
+
+//Route::middleware('jwt.admin')->group(function () {
+    Route::get('/departements', [DepartementController::class, 'index']);
+    Route::post('/departements', [DepartementController::class, 'store']);
+    Route::get('/departements/{id}', [DepartementController::class, 'show']);
+    Route::put('/departements/{id}', [DepartementController::class, 'update']); 
+    Route::delete('/departements/{id}', [DepartementController::class, 'destroy']);
+ //});
+
+
+
+
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
 });
+
 
 
 //authetification 
@@ -73,16 +90,6 @@ Route::middleware('jwt.admin')->group(function () {
     Route::post('/utilisateurs/bulk-toggle-status', [UtilisateurController::class, 'bulkToggleStatus']);
 });
 
-//Departement
- use App\Http\Controllers\DepartementController;
-
-Route::middleware('jwt.admin')->group(function () {
-    Route::get('/departements', [DepartementController::class, 'index']);
-    Route::post('/departements', [DepartementController::class, 'store']);
-    Route::get('/departements/{id}', [DepartementController::class, 'show']);
-    Route::put('/departements/{id}', [DepartementController::class, 'update']); 
-    Route::delete('/departements/{id}', [DepartementController::class, 'destroy']);
- });
 
  use App\Http\Controllers\PointageController;
 

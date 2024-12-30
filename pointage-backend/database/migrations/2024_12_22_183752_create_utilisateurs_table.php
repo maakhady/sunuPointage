@@ -26,7 +26,7 @@ return new class extends Migration
             $table->enum('role', ['utilisateur_simple', 'administrateur'])->default('utilisateur_simple');
             $table->foreignId('department_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('cohorte_id')->nullable()->constrained()->onDelete('set null');
-            $table->string('fonction',['Dg', 'Developpeur Front','Developpeur Back', 'UX/UI Design', 'RH','Assistant RH', 'Comptable','Assistant Comptable', 'Ref_Dig','Vigile', 'Responsable Communication'])->nullable(); // DG, Vigile, Comptable, RH, etc.
+            $table->enum('fonction',['DG', 'Developpeur Front','Developpeur Back', 'UX/UI Design', 'RH','Assistant RH', 'Comptable','Assistant Comptable', 'Ref_Dig','Vigile', 'Responsable Communication'])->nullable(); // DG, Vigile, Comptable, RH, etc.
             $table->timestamp('dateCreation')->useCurrent();
             $table->timestamp('dateMiseAJour')->nullable();
             $table->timestamp('email_verified_at')->nullable();
