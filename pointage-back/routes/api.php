@@ -15,17 +15,6 @@ use Illuminate\Support\Facades\Route;
 */
 
 
-use App\Http\Controllers\CohorteController;
-
-// Route::middleware('jwt.admin')->group(function () {
-    Route::group(['prefix' => 'cohortes'], function () {
-        Route::get('/', [CohorteController::class, 'index']); 
-        Route::post('/', [CohorteController::class, 'store']);  
-        Route::get('/{id}', [CohorteController::class, 'show']); 
-        Route::put('/{id}', [CohorteController::class, 'update']);
-        Route::delete('/{id}', [CohorteController::class, 'destroy']);
-    });
-// });
 
 
 
@@ -47,6 +36,17 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+use App\Http\Controllers\CohorteController;
+
+// Route::middleware('jwt.admin')->group(function () {
+    Route::group(['prefix' => 'cohortes'], function () {
+        Route::get('/', [CohorteController::class, 'index']); 
+        Route::post('/', [CohorteController::class, 'store']);  
+        Route::get('/{id}', [CohorteController::class, 'show']); 
+        Route::put('/{id}', [CohorteController::class, 'update']);
+        Route::delete('/{id}', [CohorteController::class, 'destroy']);
+    });
+ //});
 
 
 //authetification 
@@ -73,7 +73,7 @@ use App\Http\Controllers\UtilisateurController;
 
 Route::get('/utilisateurs/verify-card', [UtilisateurController::class, 'verifyCard']);
 
-Route::middleware('jwt.admin')->group(function () {
+//Route::middleware('jwt.admin')->group(function () {
     Route::get('/utilisateurs', [UtilisateurController::class, 'index']);
     Route::post('/utilisateurs', [UtilisateurController::class, 'store']);
     Route::get('/utilisateurs/{id}', [UtilisateurController::class, 'show']);
@@ -88,7 +88,7 @@ Route::middleware('jwt.admin')->group(function () {
     Route::post('/utilisateurs/bulk-status-update', [UtilisateurController::class, 'bulkStatusUpdate']);
     Route::delete('/utilisateurs/bulk-destroy', [UtilisateurController::class, 'bulkDestroy']);
     Route::post('/utilisateurs/bulk-toggle-status', [UtilisateurController::class, 'bulkToggleStatus']);
-});
+//});
 
 
  use App\Http\Controllers\PointageController;
