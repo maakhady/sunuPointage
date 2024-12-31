@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Http\Request;
+// use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,9 +14,9 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
+// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+//     return $request->user();
+// });
 
 
 use App\Http\Controllers\CohorteController;
@@ -35,6 +35,8 @@ Route::middleware('jwt.admin')->group(function () {
 //authetification 
 
 use App\Http\Controllers\AuthController;
+Route::post('register', [AuthController::class, 'register']);
+
 
 Route::prefix('utilisateurs')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
@@ -42,8 +44,11 @@ Route::prefix('utilisateurs')->group(function () {
 
 
     Route::middleware('jwt.admin')->group(function () {
-        Route::post('register', [AuthController::class, 'register']);
         Route::get('me/{id}', [AuthController::class, 'me']);
+        // Route::post('register', [AuthController::class, 'register']);
+        Route::post('creerUser', [AuthController::class, 'creerUser']);
+
+
     });
     Route::post('logout', [AuthController::class, 'logout']);
     
@@ -73,7 +78,7 @@ Route::middleware('jwt.admin')->group(function () {
     Route::post('/utilisateurs/bulk-toggle-status', [UtilisateurController::class, 'bulkToggleStatus']);
 });
 
-//Departement
+//Departement ok
  use App\Http\Controllers\DepartementController;
 
 Route::middleware('jwt.admin')->group(function () {
@@ -106,5 +111,35 @@ Route::prefix('pointages')->group(function () {
     Route::middleware('jwt.admin')->group(function () {
         Route::post('/generer-absences', [PointageController::class, 'genererAbsences']);
         Route::put('/{id}', [PointageController::class, 'modifierPointage']);
+        Route::get('/presences/filtrer', [PointageController::class, 'filtrerPresences']);
+        Route::get('/presences/recuperer', [PointageController::class, 'recupererPresences']);
     });
 });
+
+
+//oubli mot de passe 
+use App\Http\Controllers\MailSettingController;
+
+Route::post('/forgot-password', [MailSettingController::class, 'sendPasswordResetLink']);
+Route::post('/reset-password', [MailSettingController::class, 'resetPassword']); //tester 
+
+
+
+use App\Http\Controllers\CongeController;
+
+Route::middleware(['jwt.admin'])->group(function () {
+    Route::prefix('conges')->group(function () {
+        // Liste des congés
+        Route::get('/', [CongeController::class, 'index']);       
+        // Détails d'un congé
+        Route::get('/{id}', [CongeController::class, 'show']);  
+        // Liste des employés en congé
+        Route::get('/en-cours', [CongeController::class, 'enConge']);
+        // Créer un nouveau congé
+        Route::post('/', [CongeController::class, 'store']);
+        // Modifier un congé
+        Route::put('/{id}', [CongeController::class, 'update']);
+        // Supprimer un congé
+        Route::delete('/{id}', [CongeController::class, 'destroy']);
+        });
+    });

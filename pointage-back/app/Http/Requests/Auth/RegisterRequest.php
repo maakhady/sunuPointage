@@ -13,6 +13,21 @@ class RegisterRequest extends FormRequest
 
     public function rules(): array
     {
+        // return [
+        //     'nom' => 'required|string|max:255',
+        //     'prenom' => 'required|string|max:255',
+        //     'email' => 'required|email|unique:utilisateurs,email',
+        //     'password' => 'required|string|min:8',
+        //     'telephone' => 'required|unique:utilisateurs,telephone',
+        //     'matricule' => 'required|unique:utilisateurs,matricule',
+        //     'type' => 'required|in:apprenant,employe',
+        //     'fonction' => 'required_if:type,employe|in:DG,Developpeur Front,Developpeur Back,UX/UI Design,RH,Assistant RH,Comptable,Assistant Comptable,Ref_Dig,Vigile,Responsable Communication',
+        //     'cohorte_id' => 'required_if:type,apprenant|exists:cohortes,id',
+        //     // 'departement_id' => 'required_if:type,employe|exists:departements,id',
+        //     'departement_id' => 'nullable',
+        //     'photo' => 'nullable|image|max:2048',
+        //     'cardId' => 'nullable|string|unique:utilisateurs,cardId'
+        // ];
         return [
             'nom' => 'required|string|max:255',
             'prenom' => 'required|string|max:255',
@@ -20,13 +35,13 @@ class RegisterRequest extends FormRequest
             'password' => 'required|string|min:8',
             'telephone' => 'required|unique:utilisateurs,telephone',
             'matricule' => 'required|unique:utilisateurs,matricule',
-            'type' => 'required|in:apprenant,employe',
-            'fonction' => 'required_if:type,employe|in:DG,Developpeur Front,Developpeur Back,UX/UI Design,RH,Assistant RH,Comptable,Assistant Comptable,Ref_Dig,Vigile,Responsable Communication',
-            'cohorte_id' => 'required_if:type,apprenant|exists:cohortes,id',
-            // 'departement_id' => 'required_if:type,employe|exists:departements,id',
-            'departement_id' => 'nullable',
+            'fonction' => 'required_with:department_id|in:DG,Developpeur Front,Developpeur Back,UX/UI Design,RH,Assistant RH,Comptable,Assistant Comptable,Ref_Dig,Vigile,Responsable Communication',
+            'adresse' => 'nullable',
             'photo' => 'nullable|image|max:2048',
-            'cardId' => 'nullable|string|unique:utilisateurs,cardId'
+            'cardId' => 'nullable|string|unique:utilisateurs,cardId',
+            'role' => 'required|in:administrateur,utilisateur_simple',
+            'cohorte_id' => 'required_without:departement_id|exists:mongodb.cohortes,_id',
+            'departement_id' => 'required_without:cohorte_id|exists:mongodb.departements,_id'
         ];
     }
 
@@ -48,7 +63,9 @@ class RegisterRequest extends FormRequest
             'type.in' => 'Le type doit être soit apprenant soit employe',
             'fonction.required_if' => 'La fonction est requise pour un employé',
             'department_id.required_if' => 'Le département est requis pour un employé',
-            'cohorte_id.required_if' => 'La cohorte est requise pour un apprenant'
+            'cohorte_id.required_if' => 'La cohorte est requise pour un apprenant',
+            'role.required' => 'Le rôle est requis',
+            'role.in' => 'Le rôle doit être soit administrateur soit utilisateur_simple'
         ];
     }
 

@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('password');
             $table->string('telephone')->unique();
             $table->string('photo')->nullable();
+            $table->string('adresse')->nullable();
             $table->string('cardId')->unique()->nullable();
             $table->string('matricule')->unique();
             $table->enum('type', ['apprenant', 'employe']);

@@ -67,7 +67,7 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'jwt.admin' => \App\Http\Middleware\CheckJwtAdmin::class,
-        'verifieVigile' => \App\Http\Middleware\VerifieVigile::class,
+        'jwt.verifie.vigile' => \App\Http\Middleware\VerifieVigile::class,
         'jwt.vigile.admin' => \App\Http\Middleware\CheckVigileuAdmin::class,
 
 

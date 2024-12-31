@@ -22,8 +22,10 @@ class CreateUtilisateurRequest extends FormRequest
             'telephone' => 'required|string|unique:utilisateurs,telephone',
             'photo' => 'nullable|image|max:2048', // 2MB max
             'cardId' => 'nullable|string|unique:utilisateurs,cardId',
+            'adresse' => 'nullable',
             'matricule' => 'required|string|unique:utilisateurs,matricule',
             'type' => 'required|in:apprenant,employe',
+            'role' => 'required|in:administrateur,utilisateur_simple',
             'fonction' => [
                 'required_if:type,employe',
                 'in:DG,Developpeur Front,Developpeur Back,UX/UI Design,RH,Assistant RH,Comptable,Assistant Comptable,Ref_Dig,Vigile,Responsable Communication'
@@ -32,6 +34,7 @@ class CreateUtilisateurRequest extends FormRequest
             // 'cohorte_id' => 'required_if:type,apprenant|exists:cohortes,id'
             'departement_id' => 'nullable',
             'cohorte_id' => 'nullable',
+
         ];
     }
 

@@ -15,7 +15,8 @@ class CreateCohorteRequest extends FormRequest
     {
         return [
             'nom' => 'required|string|max:255',
-            'annee_scolaire' => 'required|string|max:255'
+            'annee_scolaire' => 'required|string|max:255',
+            'promo' => 'required|integer|max:255'
         ];
     }
 
@@ -23,7 +24,9 @@ class CreateCohorteRequest extends FormRequest
     {
         return [
             'nom.required' => 'Le nom de la cohorte est requis',
-            'annee_scolaire.required' => 'L\'année scolaire est requise'
+            'annee_scolaire.required' => 'L\'année scolaire est requise',
+            'promo.required' => 'La promotion est requise'
+
         ];
     }
 }

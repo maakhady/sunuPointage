@@ -19,15 +19,25 @@ class Pointage extends Model
         'estPresent',
         'estRetard',
         'premierPointage',
-        'dernierPointage'
+        'dernierPointage',
+        'estEnAttente',
+        'estRejete',
+        'premierPointage_temp',
+        'dernierPointage_temp',
+        'estRetard_temp'
     ];
 
     protected $casts = [
         'date' => 'datetime',
         'premierPointage' => 'datetime',
         'dernierPointage' => 'datetime',
+        'premierPointage_temp' => 'datetime',
+        'dernierPointage_temp' => 'datetime',
         'estPresent' => 'boolean',
-        'estRetard' => 'boolean'
+        'estRetard' => 'boolean',
+        'estRetard_temp' => 'boolean',
+        'estEnAttente' => 'boolean',
+        'estRejete' => 'boolean'
     ];
 
     // Relation avec l'utilisateur qui pointe

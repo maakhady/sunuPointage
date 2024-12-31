@@ -14,7 +14,8 @@ class UpdateDepartementRequest extends FormRequest
     public function rules()
     {
         return [
-            'nom' => 'required|string|max:255|unique:departements,nom,' . $this->route('id')
+            'nom' => 'required|string|max:255|unique:departements,nom,' . $this->route('id'),
+            'Id' => 'required|string|max:255|unique:departements,Id'
         ];
     }
 

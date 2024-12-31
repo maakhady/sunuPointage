@@ -22,6 +22,7 @@ class UpdateUtilisateurRequest extends FormRequest
             'telephone' => 'sometimes|string|unique:utilisateurs,telephone,' . $userId,
             'photo' => 'nullable|image|max:2048',
             'cardId' => 'nullable|string|unique:utilisateurs,cardId,' . $userId,
+            'adresse' => 'nullable',
             'matricule' => 'sometimes|string|unique:utilisateurs,matricule,' . $userId,
             'fonction' => [
                 'sometimes',
@@ -29,7 +30,10 @@ class UpdateUtilisateurRequest extends FormRequest
             ],
             'department_id' => 'sometimes|exists:departments,id',
             'cohorte_id' => 'sometimes|exists:cohortes,id',
-            'statut' => 'sometimes|in:actif,inactif'
+            'statut' => 'sometimes|in:actif,inactif',
+            'role' => 'sometimes|in:administrateur,utilisateur_simple',
+            'type' => 'sometimes|in:employe,aprenant'
+            
         ];
     }
 }

@@ -13,7 +13,12 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('inspire')->hourly();
-        $schedule->command('pointages:default')->dailyAt('00:01');
+        $schedule->command('pointages:default')->dailyAt('00:00');
+
+        // Tâche de test toutes les minutes
+        $schedule->call(function () {
+        error_log('Le scheduler fonctionne - ' . now());
+    })->everyMinute();
     }
 
     /**

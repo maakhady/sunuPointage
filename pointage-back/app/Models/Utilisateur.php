@@ -31,6 +31,7 @@ class Utilisateur extends Authenticatable implements JWTSubject
         'type',
         'statut',
         'role',
+        'adresse',
         'departement_id',
         'cohorte_id',
         'fonction',
@@ -133,11 +134,6 @@ class Utilisateur extends Authenticatable implements JWTSubject
             ->orderBy('date_debut', 'desc');
     }
 
-    // Mutateur pour le mot de passe
-    // public function setpasswordAttribute($value)
-    // {
-    //     $this->attributes['password'] = bcrypt($value);
-    // }
 
     // Accesseur pour le nom complet
     public function getNomCompletAttribute()

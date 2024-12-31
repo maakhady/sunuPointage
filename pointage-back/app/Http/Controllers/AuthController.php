@@ -54,7 +54,7 @@ class AuthController extends Controller
             'expires_in' => config('jwt.ttl') * 60 // TTL en secondes
         ], 200);
     }
-
+// methode avec verification admin
     public function register(RegisterRequest $request)
     {
     try {
@@ -83,6 +83,7 @@ class AuthController extends Controller
             'telephone' => $request->telephone,
             'type' => $request->type,
             'matricule' => $request->matricule,
+            'adresse' => $request->adresse,
             'fonction' => $request->fonction,
             'department_id' => $request->department_id,
             'cohorte_id' => $request->cohorte_id,
@@ -119,6 +120,53 @@ class AuthController extends Controller
         ], 500);
     }
     }
+
+    //Creation avec les conditions de departement et cohorte
+public function creerUser(RegisterRequest $request) {
+    try {
+        $userData = [
+            'nom' => $request->nom,
+            'prenom' => $request->prenom,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'telephone' => $request->telephone,
+            'matricule' => $request->matricule,
+            'adresse' => $request->adresse,
+            'type' => $request->departement_id ? 'employe' : 'apprenant',
+            'fonction' => $request->departement_id ? $request->fonction : null,
+            'departement_id' => $request->departement_id,
+            'cohorte_id' => $request->cohorte_id,
+            'cardId' => $request->cardId,
+            'photo' => $request->photo,
+            'statut' => 'actif',
+            'role' => $request->role ?? 'utilisateur_simple',
+        ];
+
+        $newUser = Utilisateur::create($userData);
+        
+        Journal::create([
+            'user_id' => $newUser->_id,
+            'action' => 'creation_compte',
+            'details' => [
+                'timestamp' => now(),
+                'ip' => $request->ip(),
+                'created_by' => 'self_registration'
+            ]
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Utilisateur créé avec succès',
+            'data' => $newUser
+        ], 201);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Erreur lors de la création: ' . $e->getMessage()
+        ], 500);
+    }
+}
 
     public function me($id)
     {
@@ -199,7 +247,7 @@ class AuthController extends Controller
 public function cardLogin(Request $request) {
     $user = Utilisateur::where('cardId', $request->cardId)
                         ->where('role', 'administrateur')
-                        ->where('statut','active')
+                        ->where('statut','actif')
                         ->first();
 
     if (!$user) {
