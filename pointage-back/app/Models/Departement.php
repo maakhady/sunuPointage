@@ -13,11 +13,11 @@ class Departement extends Model
     protected $collection = 'departements';
 
     protected $fillable = [
+        'id',
         'nom',
        
     ];
 
-    
 
     // Relation avec les utilisateurs
     public function utilisateurs()
@@ -25,8 +25,6 @@ class Departement extends Model
         return $this->hasMany(Utilisateur::class);
     }
 
-    // public function apprenants()
-    // {
-    //     return $this->hasMany(Utilisateur::class);
-    // }
+   
+   
 }

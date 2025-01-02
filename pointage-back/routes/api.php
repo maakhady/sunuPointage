@@ -1,5 +1,6 @@
 <?php
 
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -18,18 +19,6 @@ use Illuminate\Support\Facades\Route;
 
 
 
-//Departement
-use App\Http\Controllers\DepartementController;
-
-//Route::middleware('jwt.admin')->group(function () {
-    Route::get('/departements', [DepartementController::class, 'index']);
-    Route::post('/departements', [DepartementController::class, 'store']);
-    Route::get('/departements/{id}', [DepartementController::class, 'show']);
-    Route::put('/departements/{id}', [DepartementController::class, 'update']); 
-    Route::delete('/departements/{id}', [DepartementController::class, 'destroy']);
- //});
-
-
 
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
@@ -38,15 +27,16 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 use App\Http\Controllers\CohorteController;
 
-// Route::middleware('jwt.admin')->group(function () {
+Route::middleware('jwt.admin')->group(function () {
     Route::group(['prefix' => 'cohortes'], function () {
         Route::get('/', [CohorteController::class, 'index']); 
         Route::post('/', [CohorteController::class, 'store']);  
         Route::get('/{id}', [CohorteController::class, 'show']); 
         Route::put('/{id}', [CohorteController::class, 'update']);
         Route::delete('/{id}', [CohorteController::class, 'destroy']);
+        Route::get('/{cohorteId}/apprenants', [CohorteController::class, 'getApprenantsByCohorte']);
     });
- //});
+});
 
 
 //authetification 
@@ -88,8 +78,20 @@ Route::get('/utilisateurs/verify-card', [UtilisateurController::class, 'verifyCa
     Route::post('/utilisateurs/bulk-status-update', [UtilisateurController::class, 'bulkStatusUpdate']);
     Route::delete('/utilisateurs/bulk-destroy', [UtilisateurController::class, 'bulkDestroy']);
     Route::post('/utilisateurs/bulk-toggle-status', [UtilisateurController::class, 'bulkToggleStatus']);
+    Route::put('/utilisateurs/{id}/toggle-status', [UtilisateurController::class, 'toggleStatus']);
+
 //});
 
+//Departement ok
+ use App\Http\Controllers\DepartementController;
+
+Route::middleware('jwt.admin')->group(function () {
+    Route::get('/departements', [DepartementController::class, 'index']);
+    Route::post('/departements', [DepartementController::class, 'store']);
+    Route::get('/departements/{id}', [DepartementController::class, 'show']);
+    Route::put('/departements/{id}', [DepartementController::class, 'update']); 
+    Route::delete('/departements/{id}', [DepartementController::class, 'destroy']);
+ });
 
  use App\Http\Controllers\PointageController;
 

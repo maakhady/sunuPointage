@@ -196,4 +196,31 @@ class CohorteController extends Controller
             ], $e->getCode() ?: 500);
         }
     }
+
+
+
+    public function getApprenantsByCohorte($cohorteId)
+    {
+        try {
+            // Trouver la cohorte par son ID
+            $cohorte = Cohorte::with('apprenants')->find($cohorteId);
+
+            // Vérifier si la cohorte existe
+            if (!$cohorte) {
+                return response()->json(['message' => 'Cohorte non trouvée'], 404);
+            }
+
+            // Retourner les apprenants associés
+            return response()->json($cohorte->apprenants, 200);
+        } catch (\Exception $e) {
+            // Gérer les erreurs
+            return response()->json(['message' => 'Erreur interne du serveur', 'error' => $e->getMessage()], 500);
+        }
+    }
+
 }
+
+
+
+/**************************************************************************************** */
+

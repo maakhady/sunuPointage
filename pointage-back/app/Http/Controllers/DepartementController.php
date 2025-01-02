@@ -201,4 +201,25 @@ class DepartementController extends Controller
             ], $e->getCode() ?: 500);
         }
     }
+
+
+
+    public function getEmployesByDepartement($departementId)
+    {
+        try {
+            // Trouver le departement par son ID
+            $departement = Departement::with('employes')->find($departementId);
+
+            // Vérifier si le departement existe
+            if (!$departement) {
+                return response()->json(['message' => 'Departement non trouvée'], 404);
+            }
+
+            // Retourner les employes associés
+            return response()->json($departement->employes, 200);
+        } catch (\Exception $e) {
+            // Gérer les erreurs
+            return response()->json(['message' => 'Erreur interne du serveur', 'error' => $e->getMessage()], 500);
+        }
+    }
 }
