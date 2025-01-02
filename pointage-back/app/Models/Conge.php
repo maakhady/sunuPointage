@@ -23,8 +23,8 @@ class Conge extends Model
     ];
 
     protected $casts = [
-        'date_debut' => 'datetime',
-        'date_fin' => 'datetime'
+        'date_debut' => 'date:Y-m-d',
+        'date_fin' => 'date:Y-m-d'
     ];
 
     // Relation avec l'utilisateur qui demande le congé

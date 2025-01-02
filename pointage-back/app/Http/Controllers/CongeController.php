@@ -51,85 +51,89 @@ class CongeController extends Controller
      * Enregistrer un nouveau congé
      */
     public function store(Request $request)
-    {
-        $request->validate([
-            'user_id' => 'required|exists:utilisateurs,_id',
-            'date_debut' => 'required|date',
-            'date_fin' => 'required|date|after_or_equal:date_debut',
-            'type_conge' => 'required|in:congé,maladie,voyage',
-            'motif' => 'required|string'
-        ]);
+{
+   $request->validate([
+       'user_id' => 'required|exists:utilisateurs,_id',
+       'date_debut' => 'required|date_format:Y-m-d',
+       'date_fin' => 'required|date_format:Y-m-d|after_or_equal:date_debut',
+       'type_conge' => 'required|in:congé,maladie,voyage',
+       'motif' => 'required|string'
+   ]);
 
-        try {
-            $utilisateur = Utilisateur::find($request->user_id);
-            if (!$utilisateur) {
-                $this->createLog('creation_conge', [
-                    'user_id' => $request->user_id,
-                    'error' => 'Utilisateur non trouvé'
-                ], 'error');
-                
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Utilisateur non trouvé'
-                ], 404);
-            }
+   try {
+       $utilisateur = Utilisateur::find($request->user_id);
+       if (!$utilisateur) {
+           $this->createLog('creation_conge', [
+               'user_id' => $request->user_id,
+               'error' => 'Utilisateur non trouvé'
+           ], 'error');
+           
+           return response()->json([
+               'success' => false,
+               'message' => 'Utilisateur non trouvé'
+           ], 404);
+       }
 
-            $congeExistant = Conge::where('user_id', $request->user_id)
-                ->where(function($query) use ($request) {
-                    $query->whereBetween('date_debut', [$request->date_debut, $request->date_fin])
-                        ->orWhereBetween('date_fin', [$request->date_debut, $request->date_fin]);
-                })
-                ->where('status', 'validé')
-                ->first();
+       $congeExistant = Conge::where('user_id', $request->user_id)
+           ->where(function($query) use ($request) {
+               $query->whereBetween('date_debut', [$request->date_debut, $request->date_fin])
+               ->orWhereBetween('date_fin', [$request->date_debut, $request->date_fin]);
+           })
+           ->where('status', 'validé')
+           ->first();
 
-            if ($congeExistant) {
-                $this->createLog('creation_conge', [
-                    'user_id' => $request->user_id,
-                    'error' => 'Congé existant pour cette période'
-                ], 'error');
-                
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Un congé existe déjà pour cette période'
-                ], 422);
-            }
+       if ($congeExistant) {
+           $this->createLog('creation_conge', [
+               'user_id' => $request->user_id,
+               'error' => 'Congé existant pour cette période'
+           ], 'error');
+           
+           return response()->json([
+               'success' => false,
+               'message' => 'Un congé existe déjà pour cette période'
+           ], 422);
+       }
 
-            $conge = Conge::create([
-                'user_id' => $request->user_id,
-                'date_debut' => Carbon::parse($request->date_debut),
-                'date_fin' => Carbon::parse($request->date_fin),
-                'type_conge' => $request->type_conge,
-                'motif' => $request->motif,
-                'status' => 'validé',
-                'validateur_id' => Auth::id()
-            ]);
+       $dateDebut = Carbon::parse($request->date_debut);
+       $dateFin = Carbon::parse($request->date_fin);
 
-            $this->desactiverCarte($request->user_id, $request->date_debut, $request->date_fin);
-            $this->creerPointagesConge($conge);
+       $conge = Conge::create([
+           'user_id' => $request->user_id,
+           'date_debut' => $dateDebut,
+           'date_fin' => $dateFin,
+           'type_conge' => $request->type_conge,
+           'motif' => $request->motif,
+           'status' => 'validé',
+           'validateur_id' => Auth::id()
+       ]);
 
-            $this->createLog('creation_conge', [
-                'conge_id' => $conge->_id,
-                'user_id' => $request->user_id,
-                'type_conge' => $request->type_conge
-            ]);
+       // Désactiver l'utilisateur pendant la période de congé
+       $this->desactiverUtilisateur($request->user_id, $dateDebut, $dateFin);
+       $this->creerPointagesConge($conge);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Congé enregistré avec succès',
-                'data' => $conge
-            ]);
+       $this->createLog('creation_conge', [
+           'conge_id' => $conge->_id,
+           'user_id' => $request->user_id,
+           'type_conge' => $request->type_conge
+       ]);
 
-        } catch (\Exception $e) {
-            $this->createLog('creation_conge', [
-                'error' => $e->getMessage()
-            ], 'error');
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de l\'enregistrement du congé: ' . $e->getMessage()
-            ], 500);
-        }
-    }
+       return response()->json([
+           'success' => true,
+           'message' => 'Congé enregistré avec succès',
+           'data' => $conge
+       ]);
+
+   } catch (\Exception $e) {
+       $this->createLog('creation_conge', [
+           'error' => $e->getMessage()
+       ], 'error');
+       
+       return response()->json([
+           'success' => false,
+           'message' => 'Erreur lors de l\'enregistrement du congé: ' . $e->getMessage()
+       ], 500);
+   }
+}
     /**
      * Afficher les détails d'un congé
      */
@@ -163,142 +167,136 @@ class CongeController extends Controller
      * Modifier un congé
      */
     public function update(Request $request, $id)
-    {
-        $request->validate([
-            'date_debut' => 'required|date',
-            'date_fin' => 'required|date|after_or_equal:date_debut',
-            'type_conge' => 'required|in:congé,maladie,voyage',
-            'motif' => 'required|string'
-        ]);
+{
+    $request->validate([
+        'date_debut' => 'sometimes|date_format:Y-m-d',
+        'date_fin' => 'sometimes|date_format:Y-m-d|after_or_equal:date_debut',
+        'type_conge' => 'sometimes|in:congé,maladie,voyage',
+        'motif' => 'sometimes|string'
+    ]);
 
-        try {
-            $conge = Conge::findOrFail($id);
-            
-            $this->activerCarte($conge->user_id);
-            $this->supprimerPointagesConge($conge);
+   try {
+       $conge = Conge::findOrFail($id);
+       
+       $this->activerUtilisateur($conge->user_id);
+       $this->supprimerPointagesConge($conge);
 
-            $conge->update([
-                'date_debut' => ['$date' => strtotime($request->date_debut) * 1000],
-                'date_fin' => ['$date' => strtotime($request->date_fin) * 1000],
-                'type_conge' => $request->type_conge,
-                'motif' => $request->motif
-            ]);
+       $dateDebut = Carbon::parse($request->date_debut);
+       $dateFin = Carbon::parse($request->date_fin);
 
-            $this->desactiverCarte($conge->user_id, $request->date_debut, $request->date_fin);
-            $this->creerPointagesConge($conge);
+       $conge->update([
+           'date_debut' => $dateDebut,
+           'date_fin' => $dateFin,
+           'type_conge' => $request->type_conge,
+           'motif' => $request->motif
+       ]);
 
-            $this->createLog('modification_conge', [
-                'conge_id' => $id,
-                'type_conge' => $request->type_conge
-            ]);
+       $this->desactiverUtilisateur($conge->user_id, $dateDebut, $dateFin);
+       $this->creerPointagesConge($conge);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Congé modifié avec succès',
-                'data' => $conge
-            ]);
+       $this->createLog('modification_conge', [
+           'conge_id' => $id,
+           'type_conge' => $request->type_conge
+       ]);
 
-        } catch (\Exception $e) {
-            $this->createLog('modification_conge', [
-                'conge_id' => $id,
-                'error' => $e->getMessage()
-            ], 'error');
+       return response()->json([
+           'success' => true,
+           'message' => 'Congé modifié avec succès',
+           'data' => $conge
+       ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la modification du congé: ' . $e->getMessage()
-            ], 500);
-        }
-    }
+   } catch (\Exception $e) {
+       $this->createLog('modification_conge', [
+           'conge_id' => $id,
+           'error' => $e->getMessage()
+       ], 'error');
+
+       return response()->json([
+           'success' => false,
+           'message' => 'Erreur lors de la modification du congé: ' . $e->getMessage()
+       ], 500);
+   }
+}
 
     /**
      * Supprimer un congé
      */
     public function destroy($id)
-    {
-        try {
-            $conge = Conge::findOrFail($id);
-            
-            $this->activerCarte($conge->user_id);
-            $this->supprimerPointagesConge($conge);
-            
-            $conge->delete();
+{
+   try {
+       $conge = Conge::findOrFail($id);
+       
+       $this->activerUtilisateur($conge->user_id);
+       $this->supprimerPointagesConge($conge);
+       
+       $conge->delete();
 
-            $this->createLog('suppression_conge', [
-                'conge_id' => $id
-            ]);
+       $this->createLog('suppression_conge', [
+           'conge_id' => $id
+       ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Congé supprimé avec succès'
-            ]);
+       return response()->json([
+           'success' => true, 
+           'message' => 'Congé supprimé avec succès'
+       ]);
 
-        } catch (\Exception $e) {
-            $this->createLog('suppression_conge', [
-                'conge_id' => $id,
-                'error' => $e->getMessage()
-            ], 'error');
+   } catch (\Exception $e) {
+       $this->createLog('suppression_conge', [
+           'conge_id' => $id,
+           'error' => $e->getMessage()
+       ], 'error');
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la suppression du congé: ' . $e->getMessage()
-            ], 500);
-        }
-    }
+       return response()->json([
+           'success' => false,
+           'message' => 'Erreur lors de la suppression du congé: ' . $e->getMessage()
+       ], 500);
+   }
+}
 
     /**
      * Désactiver la carte d'un utilisateur pour une période donnée
      */
-    private function desactiverCarte($userId, $dateDebut, $dateFin)
+    private function desactiverUtilisateur($userId, $dateDebut, $dateFin)
     {
-        Utilisateur::where('user_id', $userId)
-        ->update([
-            'status' => 'inactive',
-            'date_reactivation' => ['$date' => strtotime($dateFin) * 1000]
+        Utilisateur::where('_id', $userId)->update([
+            'statut' => 'inactif',
+            'date_reactivation' => Carbon::parse($dateFin)
         ]);
     }
 
     /**
      * Réactiver la carte d'un utilisateur
      */
-    private function activerCarte($userId)
-    {
-        Utilisateur::where('user_id', $userId)
-            ->update([
-                'status' => 'active',
-                'date_reactivation' => null
-            ]);
-    }
+    private function activerUtilisateur($userId)
+{
+    Utilisateur::where('_id', $userId)->update([
+        'statut' => 'actif',
+        'date_reactivation' => null
+    ]);
+}
 
     /**
      * Créer les pointages automatiques pour la période de congé
      */
-    private function creerPointagesConge(Conge $conge)
-    {
-        $dateDebut = Carbon::parse($conge->date_debut);
-        $dateFin = Carbon::parse($conge->date_fin);
+    private function creerPointagesConge(Conge $conge) 
+{
+   $dateDebut = Carbon::parse($conge->date_debut);
+   $dateFin = Carbon::parse($conge->date_fin);
 
-        for($date = $dateDebut; $date->lte($dateFin); $date->addDay()) {
-            // Ne pas créer de pointage pour les weekends
-            if($date->isWeekday()) {
-                // Convertir les timestamps en millisecondes
-                $dateMillis = $date->timestamp * 1000;
-                $heureArriveeMillis = $date->copy()->setTime(8, 0)->timestamp * 1000;
-                $heureDepartMillis = $date->copy()->setTime(17, 0)->timestamp * 1000;
-                
-                Pointage::create([
-                    'user_id' => $conge->user_id,
-                    'date' => ['$date' => $dateMillis],
-                    'heure_arrivee' => ['$date' => $heureArriveeMillis],
-                    'heure_depart' => ['$date' => $heureDepartMillis],
-                    'status' => 'present',
-                    'type' => 'conge',
-                    'conge_id' => $conge->_id
-                ]);
-            }
-        }
-    }
-
+   for($date = $dateDebut; $date->lte($dateFin); $date->addDay()) {
+       if($date->isWeekday()) {
+           Pointage::create([
+               'user_id' => $conge->user_id,
+               'date' => $date->copy(),
+               'heure_arrivee' => $date->copy()->setTime(8, 0),
+               'heure_depart' => $date->copy()->setTime(17, 0),
+               'status' => 'present',
+               'type' => 'conge',
+               'conge_id' => $conge->_id
+           ]);
+       }
+   }
+}
     /**
      * Supprimer les pointages automatiques d'un congé
      */
@@ -307,22 +305,5 @@ class CongeController extends Controller
         Pointage::where('conge_id', $conge->_id)->delete();
     }
 
-    /**
-     * Liste des employés actuellement en congé
-     */
-    public function enConge()
-    {
-        $conges = Conge::with('utilisateur')
-            ->enCours()
-            ->get();
 
-        $this->createLog('consultation_conges_en_cours', [
-            'nombre_conges' => $conges->count()
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'data' => $conges
-        ]);
-    }
 }

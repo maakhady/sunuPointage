@@ -44,7 +44,7 @@ Route::prefix('utilisateurs')->group(function () {
 
 
     Route::middleware('jwt.admin')->group(function () {
-        Route::get('me/{id}', [AuthController::class, 'me']);
+        Route::get('me', [AuthController::class, 'me']);
         // Route::post('register', [AuthController::class, 'register']);
         Route::post('creerUser', [AuthController::class, 'creerUser']);
 
@@ -68,14 +68,16 @@ Route::middleware('jwt.admin')->group(function () {
     Route::put('/utilisateurs/{id}', [UtilisateurController::class, 'update']);
     Route::delete('/utilisateurs/{id}', [UtilisateurController::class, 'destroy']);
     Route::post('/utilisateurs/import', [UtilisateurController::class, 'import']);
-    Route::put('/utilisateurs/status/{id}', [UtilisateurController::class, 'updateStatus']);
+    Route::post('/utilisateurs/import/departement/{departement}', [UtilisateurController::class, 'import']);
+    Route::post('/utilisateurs/import/cohorte/{cohorte}', [UtilisateurController::class, 'import']);
     Route::post('/utilisateurs/{id}/assign-card', [UtilisateurController::class, 'assignCard']);
     // Route::get('/utilisateurs/verify-card', [UtilisateurController::class, 'verifyCard']);
-    Route::get('/utilisateurs/profile', [UtilisateurController::class, 'profile']);
-    // Route::put('/utilisateurs/profile', [UtilisateurController::class, 'updateProfile']);
+    Route::post('/utilisateurs/profile', [UtilisateurController::class, 'updateProfile']);
     Route::post('/utilisateurs/bulk-status-update', [UtilisateurController::class, 'bulkStatusUpdate']);
-    Route::delete('/utilisateurs/bulk-destroy', [UtilisateurController::class, 'bulkDestroy']);
+    Route::post('/utilisateurs/bulk-destroy', [UtilisateurController::class, 'bulkDestroy']);
     Route::post('/utilisateurs/bulk-toggle-status', [UtilisateurController::class, 'bulkToggleStatus']);
+    Route::put('/utilisateurs/{id}/toggle-status', [UtilisateurController::class, 'toggleStatus']);
+
 });
 
 //Departement ok
@@ -133,8 +135,6 @@ Route::middleware(['jwt.admin'])->group(function () {
         Route::get('/', [CongeController::class, 'index']);       
         // Détails d'un congé
         Route::get('/{id}', [CongeController::class, 'show']);  
-        // Liste des employés en congé
-        Route::get('/en-cours', [CongeController::class, 'enConge']);
         // Créer un nouveau congé
         Route::post('/', [CongeController::class, 'store']);
         // Modifier un congé

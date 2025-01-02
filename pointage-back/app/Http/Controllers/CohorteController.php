@@ -2,7 +2,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cohorte;
-use Illuminate\Http\Request;
 use App\Http\Requests\Cohorte\CreateCohorteRequest;
 use App\Http\Requests\Cohorte\UpdateCohorteRequest;
 use App\Models\Journal;

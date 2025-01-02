@@ -32,7 +32,12 @@ class RegisterRequest extends FormRequest
             'nom' => 'required|string|max:255',
             'prenom' => 'required|string|max:255',
             'email' => 'required|email|unique:utilisateurs,email',
-            'password' => 'required|string|min:8',
+            'password' => [
+                'required_if:fonction,DG,vigile',
+                'string',
+                'min:8',
+                'nullable'
+            ],
             'telephone' => 'required|unique:utilisateurs,telephone',
             'matricule' => 'required|unique:utilisateurs,matricule',
             'fonction' => 'required_with:department_id|in:DG,Developpeur Front,Developpeur Back,UX/UI Design,RH,Assistant RH,Comptable,Assistant Comptable,Ref_Dig,Vigile,Responsable Communication',

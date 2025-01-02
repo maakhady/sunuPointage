@@ -18,7 +18,7 @@ class AuthController extends Controller
             $request->headers->set('Accept', 'application/json');
             return $next($request);
         });
-        $this->middleware('auth:api', ['except' => ['login']]);
+        $this->middleware('auth:api', ['except' => ['login','cardLogin']]);
     }
 
     public function login(LoginRequest $request)
@@ -122,53 +122,67 @@ class AuthController extends Controller
     }
 
     //Creation avec les conditions de departement et cohorte
-public function creerUser(RegisterRequest $request) {
-    try {
-        $userData = [
-            'nom' => $request->nom,
-            'prenom' => $request->prenom,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'telephone' => $request->telephone,
-            'matricule' => $request->matricule,
-            'adresse' => $request->adresse,
-            'type' => $request->departement_id ? 'employe' : 'apprenant',
-            'fonction' => $request->departement_id ? $request->fonction : null,
-            'departement_id' => $request->departement_id,
-            'cohorte_id' => $request->cohorte_id,
-            'cardId' => $request->cardId,
-            'photo' => $request->photo,
-            'statut' => 'actif',
-            'role' => $request->role ?? 'utilisateur_simple',
-        ];
-
-        $newUser = Utilisateur::create($userData);
-        
-        Journal::create([
-            'user_id' => $newUser->_id,
-            'action' => 'creation_compte',
-            'details' => [
-                'timestamp' => now(),
-                'ip' => $request->ip(),
-                'created_by' => 'self_registration'
-            ]
-        ]);
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Utilisateur créé avec succès',
-            'data' => $newUser
-        ], 201);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Erreur lors de la création: ' . $e->getMessage()
-        ], 500);
+    public function creerUser(RegisterRequest $request) {
+        try {
+            $userData = [
+                'nom' => $request->nom,
+                'prenom' => $request->prenom,
+                'email' => $request->email,
+                'telephone' => $request->telephone,
+                'matricule' => $request->matricule,
+                'adresse' => $request->adresse,
+                'type' => $request->departement_id ? 'employe' : 'apprenant',
+                'fonction' => $request->departement_id ? $request->fonction : null,
+                'departement_id' => $request->departement_id,
+                'cohorte_id' => $request->cohorte_id,
+                'cardId' => $request->cardId,
+                'photo' => $request->photo,
+                'statut' => 'actif',
+                'role' => $request->role ?? 'utilisateur_simple',
+            ];
+    
+            // Ajouter password uniquement pour vigile et DG
+            if (in_array($request->fonction, ['vigile', 'DG'])) {
+                if (!$request->password) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Mot de passe requis pour cette fonction'
+                    ], 400);
+                }
+                $userData['password'] = Hash::make($request->password);
+            }
+    
+            $newUser = Utilisateur::create($userData);
+            
+            Journal::create([
+                'user_id' => $newUser->_id,
+                'action' => 'creation_compte',
+                'details' => [
+                    'timestamp' => now(),
+                    'ip' => $request->ip(),
+                    'created_by' => 'self_registration'
+                ]
+            ]);
+    
+            return response()->json([
+                'status' => true,
+                'message' => 'Utilisateur créé avec succès',
+                'data' => $newUser
+            ], 201);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Erreur lors de la création: ' . $e->getMessage()
+            ], 500);
+        }
     }
-}
 
-    public function me($id)
+    /**
+     * Récupère le profil de l'utilisateur connecté
+     * @return \Illuminate\Http\JsonResponse Profil de l'utilisateur
+     */
+    public function me()
     {
        try {
            $user = JWTAuth::parseToken()->authenticate();
@@ -244,21 +258,42 @@ public function creerUser(RegisterRequest $request) {
 }
 
 // AuthController.php avec carteRfid
-public function cardLogin(Request $request) {
+    public function cardLogin(Request $request)
+    {
     $user = Utilisateur::where('cardId', $request->cardId)
-                        ->where('role', 'administrateur')
-                        ->where('statut','actif')
-                        ->first();
+                    ->where('fonction', 'DG')
+                    ->where('statut', 'actif')
+                    ->where('role', 'administrateur')
+                    ->first();
 
     if (!$user) {
-        return response()->json(['error' => 'Unauthorized'], 401);
+        return response()->json([
+            'status' => false,
+            'message' => 'Carte non autorisée'
+        ], 401);
     }
 
-    $token = $user->createToken('administrateur-token')->plainTextToken;
-    return response()->json([
-        'token' => $token,
-        'user' => $user
+    // Générer token JWT
+    $token = JWTAuth::fromUser($user);
+
+    // Log de connexion
+    Journal::create([
+        'user_id' => $user->_id,
+        'action' => 'connexion_carte',
+        'details' => [
+            'timestamp' => now(),
+            'ip' => $request->ip()
+        ]
     ]);
-}
+
+    return response()->json([
+        'status' => true, 
+        'message' => 'Connexion réussie',
+        'data' => $user,
+        'access_token' => $token,
+        'token_type' => 'bearer',
+        'expires_in' => config('jwt.ttl') * 60
+    ], 200);
+    }
 
 }

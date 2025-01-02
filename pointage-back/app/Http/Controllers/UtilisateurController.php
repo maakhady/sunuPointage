@@ -11,7 +11,12 @@ use Illuminate\Support\Str;
 use App\Http\Requests\Utilisateur\CreateUtilisateurRequest;
 use App\Http\Requests\Utilisateur\UpdateUtilisateurRequest;
 use App\Http\Requests\Utilisateur\ImportRequest;
+use App\Models\Cohorte;
+use App\Models\Departement;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Validator;
+
 
 /**
  * Gère les opérations CRUD et autres fonctionnalités liées aux utilisateurs
@@ -29,9 +34,34 @@ class UtilisateurController extends Controller
             $query = Utilisateur::query()
                 ->with(['departement', 'cohorte']);
 
+            //Déclaration
+                $comptage = [];
+
+            // Ajout du filtre par type
             if ($request->query('type')) {
                 $query->where('type', $request->query('type'));
             }
+            // Ajout du filtre par département
+            if ($request->query('departement_id')) {
+                $query->where('departement_id', $request->query('departement_id'));
+                $comptage = [
+                    'departement' => [
+                        'total_employes' => $query->clone()->where('type', 'employe')->count(),
+                        'nom_departement' => Departement::find($request->query('departement_id'))->nom
+                    ]
+                ];
+            }
+            // Ajout du filtre par cohorte
+            if ($request->query('cohorte_id')) {
+                $query->where('cohorte_id', $request->query('cohorte_id'));
+                $comptage = [
+                    'cohorte' => [
+                        'total_apprenants' => $query->clone()->where('type', 'apprenant')->count(),
+                        'nom_cohorte' => Cohorte::find($request->query('cohorte_id'))->nom
+                    ]
+                ];
+            }
+
 
             $utilisateurs = $query->get();
 
@@ -48,6 +78,7 @@ class UtilisateurController extends Controller
 
             return response()->json([
                 'status' => true,
+                'statistiques' => $comptage,
                 'data' => $utilisateurs
             ]);
         } catch (\Exception $e) {
@@ -216,84 +247,140 @@ class UtilisateurController extends Controller
      * @param ImportRequest $request Requête contenant le fichier CSV
      * @return \Illuminate\Http\JsonResponse Résultat de l'importation
      */
-    public function import(ImportRequest $request)
-    {
-        try {
-            $importedUsers = [];
-            $errors = [];
+    // public function import(ImportRequest $request)
+    // {
+    //     try {
+    //         $importedUsers = [];
+    //         $errors = [];
             
-            $csvData = array_map('str_getcsv', file($request->file('file')->getPathname()));
-            $headers = array_shift($csvData);
+    //         $csvData = array_map('str_getcsv', file($request->file('file')->getPathname()));
+    //         $headers = array_shift($csvData);
 
-            foreach ($csvData as $row) {
-                try {
-                    $userData = array_combine($headers, $row);
-                    $userData['password'] = Hash::make($userData['password'] ?? 'password123');
-                    $user = Utilisateur::create($userData);
-                    $importedUsers[] = $user;
+    //         foreach ($csvData as $row) {
+    //             try {
+    //                 $userData = array_combine($headers, $row);
+    //                 $userData['password'] = Hash::make($userData['password'] ?? 'password123');
+    //                 $user = Utilisateur::create($userData);
+    //                 $importedUsers[] = $user;
                     
-                    // Log d'import
-                    Journal::create([
-                        'user_id' => Auth::id(),
-                        'action' => 'import_utilisateur',
-                        'details' => [
-                            'utilisateur_id' => $user->id,
-                            'source' => 'import_csv',
-                            'timestamp' => now()
-                        ]
-                    ]);
-                } catch (\Exception $e) {
-                    $errors[] = "Ligne {$row[0]}: " . $e->getMessage();
-                }
-            }
+    //                 // Log d'import
+    //                 Journal::create([
+    //                     'user_id' => Auth::id(),
+    //                     'action' => 'import_utilisateur',
+    //                     'details' => [
+    //                         'utilisateur_id' => $user->id,
+    //                         'source' => 'import_csv',
+    //                         'timestamp' => now()
+    //                     ]
+    //                 ]);
+    //             } catch (\Exception $e) {
+    //                 $errors[] = "Ligne {$row[0]}: " . $e->getMessage();
+    //             }
+    //         }
 
-            return response()->json([
-                'status' => true,
-                'message' => 'Importation réussie',
-                'data' => [
-                    'imported' => $importedUsers,
-                    'errors' => $errors
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
-        }
-    }
-    /**REVOIR AUSSI CETTE METHODE 
-     * Active/Désactive un utilisateur
-     * @param string $id Identifiant de l'utilisateur
-     * @return \Illuminate\Http\JsonResponse Utilisateur avec statut modifié
-     */
-    public function updateStatus($id)
+    //         return response()->json([
+    //             'status' => true,
+    //             'message' => 'Importation réussie',
+    //             'data' => [
+    //                 'imported' => $importedUsers,
+    //                 'errors' => $errors
+    //             ]
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => $e->getMessage()
+    //         ], $e->getCode() ?: 500);
+    //     }
+    // }
+
+    public function import(ImportRequest $request, $departement = null, $cohorte = null)
 {
-   try {
-       $utilisateur = Utilisateur::findOrFail($id);
-       $oldStatus = $utilisateur->statut;
-       $utilisateur->statut = $oldStatus === 'actif' ? 'inactif' : 'actif';
-       $utilisateur->save();
+    try {
+        $importedUsers = [];
+        $errors = [];
 
-       Journal::create([
-           'user_id' => Auth::id(),
-           'action' => 'modification_statut_utilisateur',
-           'details' => [
-               'utilisateur_id' => $utilisateur->id,
-               'ancien_statut' => $oldStatus,
-               'nouveau_statut' => $utilisateur->statut,
-               'timestamp' => now()
-           ]
-       ]);
+        $csvData = array_map('str_getcsv', file($request->file('file')->getPathname()));
+        $headers = array_shift($csvData);
 
-       return response()->json([
-           'status' => true, 
-           'message' => "Statut modifié",
-           'data' => $utilisateur
-       ]);
-   } catch (\Exception $e) {
-       return response()->json(['status' => false, 'message' => $e->getMessage()], 500);
-   }
+        // Validation de l'en-tête (Important)
+        $expectedHeaders = [ // Ajustez selon vos besoins
+            'nom', 'prenom', 'email', 'password', 'telephone', 'photo', 'cardId',
+            'matricule', 'type', 'statut', 'role', 'adresse', 'fonction', 
+        ];
+
+        if (array_diff($expectedHeaders, $headers) || array_diff($headers, $expectedHeaders)) {
+            return response()->json(['status' => false, 'message' => 'En-tête CSV invalide. Les colonnes attendues sont : ' . implode(', ', $expectedHeaders)], 400);
+        }
+
+        foreach ($csvData as $key => $row) {
+            try {
+                $userData = array_combine($headers, $row);
+
+                // Validation des données (Crucial)
+                $validator = Validator::make($userData, [
+                    'nom' => 'required|string|max:255',
+                    'prenom' => 'required|string|max:255',
+                    'email' => 'required|email|unique:utilisateurs,email',
+                    'password' => 'nullable|string|min:8',
+                    'telephone' => 'nullable|string|max:20',
+                    'photo' => 'nullable|string|max:255',
+                    'cardId' => 'nullable|string|max:255',
+                    'matricule' => 'nullable|string|max:255',
+                    'type' => 'nullable|string|max:255',
+                    'statut' => 'nullable|string|max:255',
+                    'role' => 'nullable|string|max:255',
+                    'adresse' => 'nullable|string|max:255',
+                    'fonction' => 'nullable|string|max:255',
+                    
+                ]);
+
+
+                if ($validator->fails()) {
+                    $errors[] = "Ligne " . ($key + 2) . ": " . $validator->errors()->first();
+                    continue; // Passe à la ligne suivante
+                }
+                $userData['password'] = Hash::make($userData['password'] ?? 'password123');
+                if($departement) {
+                    $userData['departement_id'] = $departement;
+                    $userData['type'] = 'employe';
+                }
+                if($cohorte){
+                    $userData['cohorte_id'] = $cohorte;
+                    $userData['type'] = 'apprenant';
+                }
+                $user = Utilisateur::create($userData);
+                $importedUsers[] = $user;
+
+                Journal::create([
+                    'user_id' => Auth::id(),
+                    'action' => 'import_utilisateur',
+                    'details' => [
+                        'utilisateur_id' => $user->id,
+                        'source' => 'import_csv',
+                        'timestamp' => now(),
+                        'row_data' => $userData
+                    ]
+                ]);
+            } catch (\Exception $e) {
+                $errors[] = "Ligne " . ($key + 2) . ": " . $e->getMessage();
+            }
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Importation réussie',
+            'data' => [
+                'imported' => $importedUsers,
+                'errors' => $errors
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => false,
+            'message' => $e->getMessage()
+        ], $e->getCode() ?: 500);
+    }
 }
 
     /**
@@ -346,53 +433,139 @@ class UtilisateurController extends Controller
     public function verifyCard(Request $request)
     {
         try {
-            $request->validate(['cardId' => 'required|string']);
-            
-            $utilisateur = Utilisateur::where('cardId', $request->cardId)
-                ->where('statut', 'actif')
-                ->with(['departement', 'cohorte'])
-                ->firstOrFail();
+            // Validation de la requête
+            $request->validate([
+                'cardId' => 'required|string'
+            ], [
+                'cardId.required' => 'L\'identifiant de la carte est requis',
+                'cardId.string' => 'L\'identifiant de la carte doit être une chaîne de caractères'
+            ]);
 
+            // Vérification de l'existence de la carte
+            $utilisateur = Utilisateur::where('cardId', $request->cardId)->first();
+            
+            if (!$utilisateur) {
+                throw new \Exception('Carte non reconnue dans le système', 403);
+            }
+
+            // Vérification du statut de l'utilisateur
+            if ($utilisateur->statut !== 'actif') {
+                // Log de tentative d'accès avec carte inactive
+                Journal::create([
+                    'user_id' => $utilisateur->id,
+                    'action' => 'verification_carte',
+                    'details' => [
+                        'cardId' => $request->cardId,
+                        'timestamp' => now(),
+                        'success' => false,
+                        'raison' => 'carte_inactive'
+                    ]
+                ]);
+                
+                throw new \Exception('Accès refusé : Carte désactivée', 403);
+            }
+
+            // Chargement des relations après vérifications
+            $utilisateur->load(['departement', 'cohorte']);
+
+            // Log de succès
             Journal::create([
                 'user_id' => $utilisateur->id,
                 'action' => 'verification_carte',
                 'details' => [
                     'cardId' => $request->cardId,
                     'timestamp' => now(),
-                    'success' => true
+                    'success' => true,
+                    'departement' => $utilisateur->departement ? $utilisateur->departement->nom : null,
+                    'cohorte' => $utilisateur->cohorte ? $utilisateur->cohorte->nom : null
                 ]
             ]);
-            
+
+            // Réponse de succès
             return response()->json([
                 'status' => true,
-                'message' => 'Carte valide',
+                'message' => 'Carte valide - Accès autorisé',
                 'data' => [
-                    'utilisateur' => $utilisateur,
+                    'utilisateur' => [
+                        'id' => $utilisateur->id,
+                        'nom' => $utilisateur->nom,
+                        'prenom' => $utilisateur->prenom,
+                        'email' => $utilisateur->email,
+                        'type' => $utilisateur->type,
+                        'departement' => $utilisateur->departement,
+                        'cohorte' => $utilisateur->cohorte
+                    ],
                     'access' => true
                 ]
-            ]);
-        } catch (\Exception $e) {
+            ], 200);
+
+        } catch (ValidationException $e) {
+            // Erreur de validation
             return response()->json([
                 'status' => false,
                 'message' => $e->getMessage(),
-                'data' => ['access' => false]
+                'data' => [
+                    'access' => false,
+                    'errors' => $e->errors()
+                ]
+            ], 422);
+
+        } catch (\Exception $e) {
+            // Log d'erreur
+            if (isset($utilisateur)) {
+                Journal::create([
+                    'user_id' => $utilisateur->id,
+                    'action' => 'verification_carte',
+                    'details' => [
+                        'cardId' => $request->cardId,
+                        'timestamp' => now(),
+                        'success' => false,
+                        'error' => $e->getMessage()
+                    ]
+                ]);
+            }
+
+            // Réponse d'erreur
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+                'data' => [
+                    'access' => false
+                ]
             ], $e->getCode() ?: 403);
         }
     }
 
+
     /**
-     * Récupère le profil de l'utilisateur connecté
-     * @return \Illuminate\Http\JsonResponse Profil de l'utilisateur
+     * Met à jour le profil de l'utilisateur connecté
+     * @param Request $request Données de mise à jour du profil
+     * @return \Illuminate\Http\JsonResponse Profil mis à jour
      */
-    public function profile()
+    public function updateProfile(UpdateUtilisateurRequest $request)
     {
         try {
-            $utilisateur = Utilisateur::with(['departement', 'cohorte', 'pointages'])
-                ->findOrFail(Auth::user()->_id);
+            $utilisateur = Utilisateur::findOrFail(Auth::user()->_id);
+            $data = $request->validated();
+
+            if (isset($data['photo']) && $data['photo']) {
+                if ($utilisateur->photo) {
+                    Storage::delete($utilisateur->photo);
+                }
+                $data['photo'] = $this->uploadPhoto($data['photo']);
+            }
+
+            if (isset($data['password'])) {
+                $data['password'] = Hash::make($data['password']);
+                unset($data['password']);
+            }
+
+            $utilisateur->update($data);
 
             return response()->json([
                 'status' => true,
-                'data' => $utilisateur
+                'message' => 'Profil mis à jour avec succès',
+                'data' => $utilisateur->fresh()
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -401,44 +574,6 @@ class UtilisateurController extends Controller
             ], $e->getCode() ?: 500);
         }
     }
-
-    /**à REVOIR AUCI CETTE METHODE 
-     * Met à jour le profil de l'utilisateur connecté
-     * @param Request $request Données de mise à jour du profil
-     * @return \Illuminate\Http\JsonResponse Profil mis à jour
-     */
-    // public function updateProfile(UpdateUtilisateurRequest $request)
-    // {
-    //     try {
-    //         $utilisateur = Utilisateur::findOrFail(Auth::user()->_id);
-    //         $data = $request->validated();
-
-    //         if (isset($data['photo']) && $data['photo']) {
-    //             if ($utilisateur->photo) {
-    //                 Storage::delete($utilisateur->photo);
-    //             }
-    //             $data['photo'] = $this->uploadPhoto($data['photo']);
-    //         }
-
-    //         if (isset($data['password'])) {
-    //             $data['password'] = Hash::make($data['password']);
-    //             unset($data['password']);
-    //         }
-
-    //         $utilisateur->update($data);
-
-    //         return response()->json([
-    //             'status' => true,
-    //             'message' => 'Profil mis à jour avec succès',
-    //             'data' => $utilisateur->fresh()
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => $e->getMessage()
-    //         ], $e->getCode() ?: 500);
-    //     }
-    // }
 
     /**
      * Met à jour le statut de plusieurs utilisateurs en même temps
@@ -480,7 +615,7 @@ class UtilisateurController extends Controller
             ], $e->getCode() ?: 500);
         }
     }
-    /** REVOIR CETTE METHODE 
+    /** 
      * Supprime plusieurs utilisateurs en même temps
      * @param Request $request Requête contenant les IDs des utilisateurs à supprimer
      * @return \Illuminate\Http\JsonResponse Message de confirmation
@@ -589,5 +724,50 @@ class UtilisateurController extends Controller
         $filename = Str::random(32) . '.' . $photo->getClientOriginalExtension();
         $path = $photo->storeAs('photos', $filename, 'public');
         return $path;
+    }
+
+
+
+    /**
+     * Active/Désactive un utilisateur 
+     * @param Request $request Requête contenant les IDs des utilisateurs
+     * @return \Illuminate\Http\JsonResponse Message de confirmation
+     */
+    public function toggleStatus($id)
+    {
+        try {
+            $utilisateur = Utilisateur::findOrFail($id);
+            
+            // Sauvegarde l'ancien statut
+            $oldStatus = $utilisateur->statut;
+            
+            // Bascule le statut
+            $utilisateur->statut = ($utilisateur->statut === 'actif') ? 'inactif' : 'actif';
+            $utilisateur->save();
+            
+            // Journalisation
+            Journal::create([
+                'user_id' => Auth::id(),
+                'action' => 'toggle_statut',
+                'details' => [
+                    'utilisateur_id' => $id,
+                    'ancien_statut' => $oldStatus,
+                    'nouveau_statut' => $utilisateur->statut,
+                    'timestamp' => now()
+                ]
+            ]);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Statut modifié avec succès',
+                'data' => $utilisateur
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], $e->getCode() ?: 500);
+        }
     }
 }
