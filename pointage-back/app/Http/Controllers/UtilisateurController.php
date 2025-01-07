@@ -89,6 +89,10 @@ class UtilisateurController extends Controller
         }
     }
 
+
+
+    
+
     /**
      * Crée un nouvel utilisateur
      * @param CreateUtilisateurRequest $request Requête validée de création
@@ -130,6 +134,124 @@ class UtilisateurController extends Controller
             ], $e->getCode() ?: 500);
         }
     }
+
+
+
+
+
+
+
+
+// /**
+//  * Crée un nouvel utilisateur selon son type (employé ou apprenant)
+//  * @param CreateUtilisateurRequest $request Requête validée de création
+//  * @return \Illuminate\Http\JsonResponse Utilisateur créé
+//  */
+// public function store(CreateUtilisateurRequest $request)
+// {
+//     try {
+//         $data = $request->validated();
+        
+//         // Gestion de la photo si présente
+//         if (isset($data['photo']) && $data['photo']) {
+//             $data['photo'] = $this->uploadPhoto($data['photo']);
+//         }
+        
+//         // Déterminer le type d'utilisateur et configurer les champs en conséquence
+//         if (isset($data['cohorte_id'])) {
+//             // Configuration pour un apprenant
+//             $data['type'] = 'apprenant';
+//             $data['role'] = 'utilisateur_simple';
+//             $data['fonction'] = null;
+//             unset($data['password']); 
+//         } else {
+//             // Configuration pour un employé
+//             $data['type'] = 'employe';
+            
+//             // Gestion du rôle et du mot de passe pour les employés
+//             if (in_array($data['role'], ['vigile', 'administrateur'])) {
+//                 if (!isset($data['password'])) {
+//                     return response()->json([
+//                         'status' => false,
+//                         'errors' => ['password' => [$request->messages()['password.required']]]
+//                     ], 422);
+//                 }
+//                 $data['password'] = Hash::make($data['password']);
+//             } else {
+//                 $data['role'] = 'utilisateur_simple';
+//                 unset($data['password']);
+//             }
+//         }
+        
+//         // Statut par défaut
+//         $data['statut'] = 'actif';
+        
+//         // Création de l'utilisateur
+//         $utilisateur = Utilisateur::create($data);
+        
+//         // Log de création
+//         Journal::create([
+//             'user_id' => Auth::id(),
+//             'action' => 'creation_utilisateur',
+//             'details' => [
+//                 'utilisateur_id' => $utilisateur->id,
+//                 'type' => $data['type'],
+//                 'timestamp' => now()
+//             ]
+//         ]);
+        
+//         return response()->json([
+//             'status' => true,
+//             'message' => 'Utilisateur créé avec succès',
+//             'data' => $utilisateur
+//         ], 201);
+        
+//     } catch (\Illuminate\Validation\ValidationException $e) {
+//         return response()->json([
+//             'status' => false,
+//             'errors' => $e->errors()
+//         ], 422);
+        
+//     } catch (\Illuminate\Database\QueryException $e) {
+//         $messages = $request->messages();
+//         $errors = [];
+        
+//         if (str_contains($e->getMessage(), 'email')) {
+//             $errors['email'] = [$messages['email.unique']];
+//         }
+//         if (str_contains($e->getMessage(), 'telephone')) {
+//             $errors['telephone'] = [$messages['telephone.unique']];
+//         }
+//         if (str_contains($e->getMessage(), 'matricule')) {
+//             $errors['matricule'] = [$messages['matricule.unique']];
+//         }
+//         if (str_contains($e->getMessage(), 'cardId')) {
+//             $errors['cardId'] = [$messages['cardId.unique']];
+//         }
+        
+//         return response()->json([
+//             'status' => false,
+//             'errors' => $errors
+//         ], 422);
+        
+//     } catch (\Exception $e) {
+//         return response()->json([
+//             'status' => false,
+//             'errors' => ['general' => [$e->getMessage()]]
+//         ], 500);
+//     }
+// }
+
+
+
+
+
+
+
+
+
+
+
     /**
      * Récupère les détails d'un utilisateur spécifique
      * @param string $id Identifiant de l'utilisateur
@@ -152,6 +274,18 @@ class UtilisateurController extends Controller
             ], $e->getCode() ?: 500);
         }
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
     /**
      * Met à jour un utilisateur existant
@@ -203,6 +337,13 @@ class UtilisateurController extends Controller
         }
     }
 
+
+
+
+
+
+
+
     /**
      * Supprime un utilisateur
      * @param string $id Identifiant de l'utilisateur
@@ -242,59 +383,110 @@ class UtilisateurController extends Controller
     }
 
 
+
+
+
+
     /**
      * Importe des utilisateurs depuis un fichier CSV
      * @param ImportRequest $request Requête contenant le fichier CSV
      * @return \Illuminate\Http\JsonResponse Résultat de l'importation
      */
-    // public function import(ImportRequest $request)
-    // {
-    //     try {
-    //         $importedUsers = [];
-    //         $errors = [];
-            
-    //         $csvData = array_map('str_getcsv', file($request->file('file')->getPathname()));
-    //         $headers = array_shift($csvData);
+    public function importCohorte(ImportRequest $request,  $cohorte = null)
+    {
+        try {
+            $importedUsers = [];
+            $errors = [];
+    
+            $csvData = array_map('str_getcsv', file($request->file('file')->getPathname()));
+            $headers = array_shift($csvData);
+    
+            // Validation de l'en-tête (Important)
+            $expectedHeaders = [ // Ajustez selon vos besoins
+                'nom', 'prenom', 'email', 'telephone', 'photo', 'cardId',
+                'matricule', 'adresse','role'
+            ];
+    
+            if (array_diff($expectedHeaders, $headers) || array_diff($headers, $expectedHeaders)) {
+                return response()->json(['status' => false, 'message' => 'En-tête CSV invalide. Les colonnes attendues sont : ' . implode(', ', $expectedHeaders)], 400);
+            }
+    
+            foreach ($csvData as $key => $row) {
+                try {
+                    $userData = array_combine($headers, $row);
+    
+                    // Validation des données (Crucial)
+                    $validator = Validator::make($userData, [
+                        'nom' => 'required|string|max:255',
+                        'prenom' => 'required|string|max:255',
+                        'email' => 'required|email|unique:utilisateurs,email',
+                        'telephone' => 'nullable|string|max:20',
+                        'photo' => 'nullable|string|max:255',
+                        'cardId' => 'nullable|string|max:255',
+                        'matricule' => 'nullable|string|max:255',
+                        'adresse' => 'nullable|string|max:255',
+                        'role' => 'nullable|string|max:255',
+                       
+                        
+                    ]);
+    
+    
+                    if ($validator->fails()) {
+                        $errors[] = "Ligne " . ($key + 2) . ": " . $validator->errors()->first();
+                        continue; // Passe à la ligne suivante
+                    }
+                   
+                    if($cohorte){
+                        $userData['cohorte_id'] = $cohorte;
+                        $userData['type'] = 'apprenant';
+                    }
+                    $user = Utilisateur::create($userData);
+                    $importedUsers[] = $user;
+    
+                    Journal::create([
+                        'user_id' => Auth::id(),
+                        'action' => 'import_utilisateur',
+                        'details' => [
+                            'utilisateur_id' => $user->id,
+                            'source' => 'import_csv',
+                            'timestamp' => now(),
+                            'row_data' => $userData
+                        ]
+                    ]);
+                } catch (\Exception $e) {
+                    $errors[] = "Ligne " . ($key + 2) . ": " . $e->getMessage();
+                }
+            }
+    
+            return response()->json([
+                'status' => true,
+                'message' => 'Importation réussie',
+                'data' => [
+                    'imported' => $importedUsers,
+                    'errors' => $errors
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], $e->getCode() ?: 500);
+        }
+    }
 
-    //         foreach ($csvData as $row) {
-    //             try {
-    //                 $userData = array_combine($headers, $row);
-    //                 $userData['password'] = Hash::make($userData['password'] ?? 'password123');
-    //                 $user = Utilisateur::create($userData);
-    //                 $importedUsers[] = $user;
-                    
-    //                 // Log d'import
-    //                 Journal::create([
-    //                     'user_id' => Auth::id(),
-    //                     'action' => 'import_utilisateur',
-    //                     'details' => [
-    //                         'utilisateur_id' => $user->id,
-    //                         'source' => 'import_csv',
-    //                         'timestamp' => now()
-    //                     ]
-    //                 ]);
-    //             } catch (\Exception $e) {
-    //                 $errors[] = "Ligne {$row[0]}: " . $e->getMessage();
-    //             }
-    //         }
 
-    //         return response()->json([
-    //             'status' => true,
-    //             'message' => 'Importation réussie',
-    //             'data' => [
-    //                 'imported' => $importedUsers,
-    //                 'errors' => $errors
-    //             ]
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => $e->getMessage()
-    //         ], $e->getCode() ?: 500);
-    //     }
-    // }
 
-    public function import(ImportRequest $request, $departement = null, $cohorte = null)
+
+
+
+
+
+
+
+
+
+
+    public function import(ImportRequest $request, $departement = null)
 {
     try {
         $importedUsers = [];
@@ -305,13 +497,14 @@ class UtilisateurController extends Controller
 
         // Validation de l'en-tête (Important)
         $expectedHeaders = [ // Ajustez selon vos besoins
-            'nom', 'prenom', 'email', 'password', 'telephone', 'photo', 'cardId',
-            'matricule', 'type', 'statut', 'role', 'adresse', 'fonction', 
+            'nom', 'prenom', 'email', 'password', 'telephone', 'type', 'role', 'adresse', 'fonction',  'matricule', 'photo'
         ];
 
         if (array_diff($expectedHeaders, $headers) || array_diff($headers, $expectedHeaders)) {
             return response()->json(['status' => false, 'message' => 'En-tête CSV invalide. Les colonnes attendues sont : ' . implode(', ', $expectedHeaders)], 400);
         }
+
+        
 
         foreach ($csvData as $key => $row) {
             try {
@@ -345,10 +538,7 @@ class UtilisateurController extends Controller
                     $userData['departement_id'] = $departement;
                     $userData['type'] = 'employe';
                 }
-                if($cohorte){
-                    $userData['cohorte_id'] = $cohorte;
-                    $userData['type'] = 'apprenant';
-                }
+              
                 $user = Utilisateur::create($userData);
                 $importedUsers[] = $user;
 
@@ -382,6 +572,7 @@ class UtilisateurController extends Controller
         ], $e->getCode() ?: 500);
     }
 }
+
 
     /**
      * Assigne une carte RFID à un utilisateur
@@ -728,6 +919,11 @@ class UtilisateurController extends Controller
 
 
 
+
+
+    /****************************************************************************************** */
+
+    
     /**
      * Active/Désactive un utilisateur 
      * @param Request $request Requête contenant les IDs des utilisateurs
@@ -770,4 +966,32 @@ class UtilisateurController extends Controller
             ], $e->getCode() ?: 500);
         }
     }
+
+
+
+
+    public function countEmployes()
+    {
+        // Compter les utilisateurs dont le type est 'employe'
+        $count = Utilisateur::where('type', 'employe')->count();
+
+        return response()->json([
+            'count' => $count
+        ]);
+    }
+
+
+
+    public function countApprenants()
+    {
+        // Compter les utilisateurs dont le type est 'employe'
+        $count = Utilisateur::where('type', 'apprenant')->count();
+
+        return response()->json([
+            'count' => $count
+        ]);
+    }
+
+
+
 }

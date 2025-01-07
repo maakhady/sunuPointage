@@ -14,7 +14,7 @@ class Departement extends Model
 
     protected $fillable = [
         'nom',
-        'Id'
+        
     ];
 
     
@@ -25,6 +25,9 @@ class Departement extends Model
         return $this->hasMany(Utilisateur::class);
     }
 
-   
+    public function employes()
+    {
+        return $this->hasMany(Utilisateur::class);
+    }
    
 }

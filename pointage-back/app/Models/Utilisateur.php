@@ -47,6 +47,7 @@ class Utilisateur extends Authenticatable implements JWTSubject
     protected $casts = [
         'email_verified_at' => 'datetime',
         
+        
     ];
 
     // Methode pour récupérer le mot de passe pour l'authentification

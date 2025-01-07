@@ -145,6 +145,14 @@ class PointageController extends Controller
         ]);
     }
 
+
+
+
+
+
+
+
+
     /**
      * Génère les pointages "absent" par défaut pour tous les utilisateurs
      * Utilisé chaque matin pour initialiser les pointages
@@ -196,6 +204,14 @@ class PointageController extends Controller
             throw $e;
         }
     }
+
+
+
+
+
+
+
+
 
 
     /**
@@ -261,6 +277,17 @@ class PointageController extends Controller
         ]);
     }
 
+
+
+
+
+
+
+
+
+
+
+
     /**
      * Modification d'un pointage par un administrateur
      * @param Request $request
@@ -306,42 +333,56 @@ class PointageController extends Controller
         ]);
     }
 
-    /**
-     * Liste des pointages avec filtres optionnels
-     * @param Request $request
-     * @return JsonResponse
-     */
 
-    public function index(Request $request)
-    {
-        $query = Pointage::query();
-        // Filtre par date
-        if ($date = $request->input('date')) {
-            $query->whereDate('date', Carbon::parse($date));
-        }
 
-            // Filtre par utilisateur
-        if ($userId = $request->input('user_id')) {
-            $query->where('user_id', $userId);
-        }
 
-        // Pagination des résultats
-        $pointages = $query->with(['utilisateur', 'vigile'])
-                          ->paginate($request->input('per_page', 15));
 
-        $this->createLog('consultation_pointages', [
-            'filtres' => [
-                'date' => $date,
-                'user_id' => $userId
-            ],
-            'nombre_resultats' => $pointages->total()
-        ]);
 
-        return response()->json([
-            'status' => true,
-            'data' => $pointages
-        ]);
+/**
+ * Liste des pointages avec filtres optionnels
+ * @param Request $request
+ * @return JsonResponse
+ */
+public function index(Request $request)
+{
+    $query = Pointage::query();
+
+    // Filtre par date
+    if ($date = $request->input('date')) {
+        $query->whereDate('date', Carbon::parse($date));
     }
+
+    // Filtre par utilisateur
+    if ($userId = $request->input('user_id')) {
+        $query->where('user_id', $userId);
+    }
+
+    // Récupération des résultats sans pagination
+    $pointages = $query->with(['utilisateur', 'vigile'])->get();
+
+    $this->createLog('consultation_pointages', [
+        'filtres' => [
+            'date' => $date,
+            'user_id' => $userId
+        ],
+        'nombre_resultats' => $pointages->count()
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'data' => $pointages
+    ]);
+}
+
+
+
+
+
+
+
+
+
+
 
         /**
      * Récupérer l'historique des pointages avec filtres

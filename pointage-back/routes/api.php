@@ -21,15 +21,17 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\CohorteController;
 
-Route::middleware('jwt.admin')->group(function () {
+// Route::middleware('jwt.admin')->group(function () {
     Route::group(['prefix' => 'cohortes'], function () {
         Route::get('/', [CohorteController::class, 'index']); 
         Route::post('/', [CohorteController::class, 'store']);  
         Route::get('/{id}', [CohorteController::class, 'show']); 
         Route::put('/{id}', [CohorteController::class, 'update']);
         Route::delete('/{id}', [CohorteController::class, 'destroy']);
+        Route::get('/{cohorteId}/apprenants', [CohorteController::class, 'getApprenantsByCohorte']);
+
     });
-});
+// });
 
 
 //authetification 
@@ -43,13 +45,15 @@ Route::prefix('utilisateurs')->group(function () {
     Route::post('card', [AuthController::class, 'cardLogin']);
 
 
-    Route::middleware('jwt.admin')->group(function () {
+   // Route::middleware('jwt.admin')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         // Route::post('register', [AuthController::class, 'register']);
         Route::post('creerUser', [AuthController::class, 'creerUser']);
+        Route::put('modifierUser/{id}', [AuthController::class, 'modifierUser']);
 
 
-    });
+
+   // });
     Route::post('logout', [AuthController::class, 'logout']);
     
 });
@@ -61,7 +65,7 @@ use App\Http\Controllers\UtilisateurController;
 
 Route::get('/utilisateurs/verify-card', [UtilisateurController::class, 'verifyCard']);
 
-Route::middleware('jwt.admin')->group(function () {
+// Route::middleware('jwt.admin')->group(function () {
     Route::get('/utilisateurs', [UtilisateurController::class, 'index']);
     Route::post('/utilisateurs', [UtilisateurController::class, 'store']);
     Route::get('/utilisateurs/{id}', [UtilisateurController::class, 'show']);
@@ -69,7 +73,7 @@ Route::middleware('jwt.admin')->group(function () {
     Route::delete('/utilisateurs/{id}', [UtilisateurController::class, 'destroy']);
     Route::post('/utilisateurs/import', [UtilisateurController::class, 'import']);
     Route::post('/utilisateurs/import/departement/{departement}', [UtilisateurController::class, 'import']);
-    Route::post('/utilisateurs/import/cohorte/{cohorte}', [UtilisateurController::class, 'import']);
+    Route::post('/utilisateurs/import/cohorte/{cohorte}', [UtilisateurController::class, 'importCohorte']);
     Route::post('/utilisateurs/{id}/assign-card', [UtilisateurController::class, 'assignCard']);
     // Route::get('/utilisateurs/verify-card', [UtilisateurController::class, 'verifyCard']);
     Route::post('/utilisateurs/profile', [UtilisateurController::class, 'updateProfile']);
@@ -77,19 +81,23 @@ Route::middleware('jwt.admin')->group(function () {
     Route::post('/utilisateurs/bulk-destroy', [UtilisateurController::class, 'bulkDestroy']);
     Route::post('/utilisateurs/bulk-toggle-status', [UtilisateurController::class, 'bulkToggleStatus']);
     Route::put('/utilisateurs/{id}/toggle-status', [UtilisateurController::class, 'toggleStatus']);
+    Route::get('/count-employes', [UtilisateurController::class, 'countEmployes']);
+    Route::get('/count-apprenants', [UtilisateurController::class, 'countApprenants']);
 
-});
+// });
 
 //Departement ok
  use App\Http\Controllers\DepartementController;
 
-Route::middleware('jwt.admin')->group(function () {
+// Route::middleware('jwt.admin')->group(function () {
     Route::get('/departements', [DepartementController::class, 'index']);
     Route::post('/departements', [DepartementController::class, 'store']);
     Route::get('/departements/{id}', [DepartementController::class, 'show']);
     Route::put('/departements/{id}', [DepartementController::class, 'update']); 
     Route::delete('/departements/{id}', [DepartementController::class, 'destroy']);
- });
+    Route::get('/{departementId}/employes', [DepartementController::class, 'getEmployesByDepartement']);
+
+//  });
 
  use App\Http\Controllers\PointageController;
 
@@ -99,10 +107,10 @@ Route::prefix('pointages')->group(function () {
     Route::post('/pointer', [PointageController::class, 'pointer']);
     
     // Routes communes Vigile et Admin
-    Route::middleware('jwt.vigile.admin')->group(function () {
+    //Route::middleware('jwt.vigile.admin')->group(function () {
         Route::get('/', [PointageController::class, 'index']);
         Route::get('/historique', [PointageController::class, 'historique']);
-    });
+    //});
 
     // Routes spécifiques Vigile
     Route::middleware('jwt.verifie.vigile')->group(function () {

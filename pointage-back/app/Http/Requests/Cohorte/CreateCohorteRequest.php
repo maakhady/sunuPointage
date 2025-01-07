@@ -14,7 +14,7 @@ class CreateCohorteRequest extends FormRequest
     public function rules()
     {
         return [
-            'nom' => 'required|string|max:255',
+            'nom' => 'required|string|max:255|unique:cohorte,nom',
             'annee_scolaire' => 'required|string|max:255',
             'promo' => 'required|integer|max:255'
         ];
@@ -25,8 +25,8 @@ class CreateCohorteRequest extends FormRequest
         return [
             'nom.required' => 'Le nom de la cohorte est requis',
             'annee_scolaire.required' => 'L\'année scolaire est requise',
-            'promo.required' => 'La promotion est requise'
-
+            'promo.required' => 'La promotion est requise',
+            'nom.unique' => 'Le nom de la cohorte doit etre unique'
         ];
     }
 }

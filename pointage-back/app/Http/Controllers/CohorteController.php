@@ -52,6 +52,13 @@ class CohorteController extends Controller
     public function store(CreateCohorteRequest $request)
     {
         try {
+
+            if (Cohorte::where('nom', $request->nom)->exists()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Cette cohorte existe déjà'
+                ], 422);
+            }
             $cohorte = Cohorte::create($request->validated());
  
             Journal::create([
@@ -193,6 +200,26 @@ class CohorteController extends Controller
                 'status' => false,
                 'message' => $e->getMessage()
             ], $e->getCode() ?: 500);
+        }
+    }
+
+
+    public function getApprenantsByCohorte($cohorteId)
+    {
+        try {
+            // Trouver la cohorte par son ID
+            $cohorte = Cohorte::with('apprenants')->find($cohorteId);
+
+            // Vérifier si la cohorte existe
+            if (!$cohorte) {
+                return response()->json(['message' => 'Cohorte non trouvée'], 404);
+            }
+
+            // Retourner les apprenants associés
+            return response()->json($cohorte->apprenants, 200);
+        } catch (\Exception $e) {
+            // Gérer les erreurs
+            return response()->json(['message' => 'Erreur interne du serveur', 'error' => $e->getMessage()], 500);
         }
     }
 }

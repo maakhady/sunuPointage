@@ -15,7 +15,6 @@ class CreateDepartementRequest extends FormRequest
     {
         return [
             'nom' => 'required|string|max:255|unique:departements,nom',
-            'Id' => 'required|string|max:255|unique:departements,Id'
         ];
     }
 

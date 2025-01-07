@@ -18,7 +18,7 @@ class AuthController extends Controller
             $request->headers->set('Accept', 'application/json');
             return $next($request);
         });
-        $this->middleware('auth:api', ['except' => ['login','cardLogin']]);
+        $this->middleware('auth:api', ['except' => ['login','cardLogin','creerUser', 'modifierUser']]);
     }
 
     public function login(LoginRequest $request)
@@ -121,9 +121,27 @@ class AuthController extends Controller
     }
     }
 
-    //Creation avec les conditions de departement et cohorte
-    public function creerUser(RegisterRequest $request) {
+
+
+
+
+
+
+
+    public function creerUser(RegisterRequest $request)
+    {
         try {
+            
+            // Gestion de la photo si elle est fournie
+            $photoPath = null; // Initialiser la variable photoPath
+            if ($request->hasFile('photo') && $request->file('photo')->isValid()) {
+                $photo = $request->file('photo');
+                $photoPath = $photo->store('photos', 'public'); // Stocker dans storage/app/public/photos
+                $request->merge(['photo' => $photoPath]); // Ajouter le chemin au tableau de requête
+            } else {
+                $request->merge(['photo' => null]); // Si aucune photo n'est fournie ou si elle est invalide
+            }
+    
             $userData = [
                 'nom' => $request->nom,
                 'prenom' => $request->prenom,
@@ -135,10 +153,8 @@ class AuthController extends Controller
                 'fonction' => $request->departement_id ? $request->fonction : null,
                 'departement_id' => $request->departement_id,
                 'cohorte_id' => $request->cohorte_id,
-                'cardId' => $request->cardId,
-                'photo' => $request->photo,
+                'photo' => $request->photo, // Utiliser le chemin de la photo
                 'statut' => 'actif',
-                'role' => $request->role ?? 'utilisateur_simple',
             ];
     
             // Ajouter password uniquement pour vigile et DG
@@ -152,8 +168,8 @@ class AuthController extends Controller
                 $userData['password'] = Hash::make($request->password);
             }
     
-            $newUser = Utilisateur::create($userData);
-            
+            $newUser = Utilisateur::create($userData); // Créer l'utilisateur avec les données
+    
             Journal::create([
                 'user_id' => $newUser->_id,
                 'action' => 'creation_compte',
@@ -164,10 +180,16 @@ class AuthController extends Controller
                 ]
             ]);
     
+            // Ajouter l'URL complète de la photo à la réponse
+            $photoUrl = $newUser->photo ? asset('storage/' . $newUser->photo) : null;
+    
             return response()->json([
                 'status' => true,
                 'message' => 'Utilisateur créé avec succès',
-                'data' => $newUser
+                'data' => [
+                    'user' => $newUser,
+                    'photo_url' => $photoUrl
+                ]
             ], 201);
     
         } catch (\Exception $e) {
@@ -177,6 +199,83 @@ class AuthController extends Controller
             ], 500);
         }
     }
+    
+
+
+
+    public function modifierUser(Request $request, $id)
+    {
+        try {
+            // Récupérer l'utilisateur
+            $user = Utilisateur::findOrFail($id);
+            
+            // Validation adaptée aux champs envoyés par le frontend
+            $validatedData = $request->validate([
+                'nom' => 'sometimes|string|max:255',
+                'prenom' => 'sometimes|string|max:255',
+                'email' => 'sometimes|email|unique:utilisateurs,email,' . $id,
+                'telephone' => 'sometimes|string|unique:utilisateurs,telephone,' . $id,
+                'adresse' => 'sometimes|string',
+                'fonction' => 'sometimes|string|max:255',
+                'photo' => 'nullable|image|max:2048',
+                'password' => 'nullable|string|min:8'
+            ]);
+    
+            // Sauvegarder l'état initial pour le journal
+            $oldData = $user->toArray();
+    
+            // Gestion de la photo
+            if ($request->hasFile('photo')) {
+                $validatedData['photo'] = $this->uploadPhoto($request->file('photo'));
+            }
+    
+            // Gestion du mot de passe pour vigile et DG
+            if (isset($validatedData['fonction'])) {
+                if (in_array($validatedData['fonction'], ['DG', 'Vigile'])) {
+                    if ($request->has('password') && !empty($request->password)) {
+                        $validatedData['password'] = Hash::make($request->password);
+                    }
+                } else {
+                    unset($validatedData['password']);
+                }
+            }
+    
+            // Mise à jour de l'utilisateur
+            $user->update($validatedData);
+    
+            // Journalisation
+            Journal::create([
+                'user_id' => auth()->id(), // Utilisateur qui fait la modification
+                'action' => 'modification_utilisateur',
+                'details' => [
+                    'utilisateur_id' => $user->_id,
+                    'anciennes_donnees' => $oldData,
+                    'nouvelles_donnees' => $user->fresh()->toArray(),
+                    'timestamp' => now(),
+                    'ip' => $request->ip()
+                ]
+            ]);
+    
+            return response()->json([
+                'status' => true,
+                'message' => 'Utilisateur modifié avec succès',
+                'data' => $user->fresh()
+            ]);
+    
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Utilisateur non trouvé'
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Erreur lors de la modification: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
 
     /**
      * Récupère le profil de l'utilisateur connecté
