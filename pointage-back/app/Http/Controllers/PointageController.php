@@ -44,8 +44,8 @@ class PointageController extends Controller
      * @return JsonResponse
      */
 
-    public function pointer(Request $request)
-    {
+     public function pointer(Request $request)
+     {
         // Validation du cardId
         $validator = Validator::make($request->all(), [
             'cardId' => 'required|string'
@@ -80,6 +80,7 @@ class PointageController extends Controller
                 'message' => 'Accès refusé: Carte non reconnue ou inactive'
             ], 403);
         }
+
         // Vérification si l'utilisateur est en congé
         if ($utilisateur->estEnConge()) {
             $this->createLog('pointage_echec', [
@@ -92,19 +93,21 @@ class PointageController extends Controller
                 'message' => 'Utilisateur en congé'
             ], 403);
         }
+
         // Initialisation des variables de temps
         $now = Carbon::now();
         $today = Carbon::today();
         $heureDebutJournee = Carbon::today()->setHour(8)->setMinute(30);
 
-            // Recherche pointage existant pour aujourd'hui
+        // Recherche pointage existant pour aujourd'hui
         $pointage = Pointage::where('user_id', $utilisateur->_id)
             ->whereDate('date', $today)
             ->first();
 
         if ($pointage) {
-        // Mise à jour du pointage existant en attente
+            // Mise à jour du pointage existant en attente
             $updateData = [
+                'cardId' => $request->cardId, // Ajout du cardId
                 'estPresent' => false, // Reste faux jusqu'à validation
                 'estEnAttente' => true  // Nouveau champ pour indiquer l'attente de validation
             ];
@@ -121,6 +124,7 @@ class PointageController extends Controller
             // Création nouveau pointage en attente
             $pointage = Pointage::create([
                 'user_id' => $utilisateur->_id,
+                'cardId' => $request->cardId, // Ajout du cardId
                 'date' => $today,
                 'premierPointage_temp' => $now,
                 'estRetard_temp' => $now->greaterThan($heureDebutJournee),
@@ -128,10 +132,12 @@ class PointageController extends Controller
                 'estEnAttente' => true  // En attente de validation
             ]);
         }
-//logg
+
+        // Log
         $this->createLog('pointage_enregistre', [
             'user_id' => $utilisateur->_id,
             'pointage_id' => $pointage->_id,
+            'cardId' => $request->cardId, // Ajout du cardId dans le log
             'type' => $pointage->premierPointage ? 'sortie' : 'entree'
         ]);
 
@@ -143,59 +149,59 @@ class PointageController extends Controller
                 'pointage' => $pointage
             ]
         ]);
-    }
+     }
 
     /**
      * Génère les pointages "absent" par défaut pour tous les utilisateurs
      * Utilisé chaque matin pour initialiser les pointages
      * @return JsonResponse
      */
-    public function genererAbsences()
-    {
-        try {
-            $today = Carbon::today();
-             // Récupération utilisateurs actifs non en congé
-            $utilisateurs = Utilisateur::where('statut', 'actif')
-                ->whereNotIn('_id', function($query) {
-                    $query->select('user_id')
-                          ->from('conges')
-                          ->whereDate('date_debut', '<=', now())
-                          ->whereDate('date_fin', '>=', now());
-                })
-                ->get();
-                 // Préparation des données pour insertion massive
-            $absences = $utilisateurs->map(function($utilisateur) use ($today) {
-                return [
-                    'user_id' => $utilisateur->_id,
-                    'date' => $today,
-                    'estPresent' => false,
-                    'estRetard' => false,
-                    'premierPointage' => null,
-                    'dernierPointage' => null,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ];
-            })->toArray();
-        // Insertion massive dans MongoDB
-            Pointage::raw()->insertMany($absences);
+    // public function genererAbsences()
+    // {
+    //     try {
+    //         $today = Carbon::today();
+    //          // Récupération utilisateurs actifs non en congé
+    //         $utilisateurs = Utilisateur::where('statut', 'actif')
+    //             ->whereNotIn('_id', function($query) {
+    //                 $query->select('user_id')
+    //                       ->from('conges')
+    //                       ->whereDate('date_debut', '<=', now())
+    //                       ->whereDate('date_fin', '>=', now());
+    //             })
+    //             ->get();
+    //              // Préparation des données pour insertion massive
+    //         $absences = $utilisateurs->map(function($utilisateur) use ($today) {
+    //             return [
+    //                 'user_id' => $utilisateur->_id,
+    //                 'date' => $today,
+    //                 'estPresent' => false,
+    //                 'estRetard' => false,
+    //                 'premierPointage' => null,
+    //                 'dernierPointage' => null,
+    //                 'created_at' => now(),
+    //                 'updated_at' => now()
+    //             ];
+    //         })->toArray();
+    //     // Insertion massive dans MongoDB
+    //         Pointage::raw()->insertMany($absences);
 
-            $this->createLog('generation_absences', [
-                'date' => $today->format('Y-m-d'),
-                'nombre_utilisateurs' => count($absences)
-            ]);
+    //         $this->createLog('generation_absences', [
+    //             'date' => $today->format('Y-m-d'),
+    //             'nombre_utilisateurs' => count($absences)
+    //         ]);
 
-            return response()->json([
-                'status' => true,
-                'message' => 'Pointages par défaut générés pour ' . count($absences) . ' utilisateurs'
-            ]);
-        } catch (\Exception $e) {
-            $this->createLog('generation_absences', [
-                'error' => $e->getMessage()
-            ], 'error');
+    //         return response()->json([
+    //             'status' => true,
+    //             'message' => 'Pointages par défaut générés pour ' . count($absences) . ' utilisateurs'
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         $this->createLog('generation_absences', [
+    //             'error' => $e->getMessage()
+    //         ], 'error');
 
-            throw $e;
-        }
-    }
+    //         throw $e;
+    //     }
+    // }
 
 
     /**
@@ -205,61 +211,65 @@ class PointageController extends Controller
      * @return JsonResponse
      */
 
-    public function validerPointage(Request $request, $id)
-    {
-        $pointage = Pointage::find($id);
-    
-        if (!$pointage || !$pointage->estEnAttente) {
-            $this->createLog('validation_pointage_echec', [
-                'pointage_id' => $id,
-                'error' => 'Pointage non trouvé ou déjà traité'
-            ], 'error');
+     public function validerPointage(Request $request, $cardId)
+     {
+         // Recherche du pointage le plus récent en attente pour ce cardId
+         $pointage = Pointage::where('cardId', $cardId)
+             ->where('estEnAttente', true)
+             ->orderBy('created_at', 'desc')
+             ->first();
 
-            return response()->json([
-                'status' => false,
-                'message' => 'Pointage non trouvé ou déjà traité'
-            ], 404);
-        }
-    
-        $validated = $request->validate([
-            'vigile_id' => 'required|exists:utilisateurs,_id',
-            'action' => 'required|in:valider,rejeter',
-        ]);
-    
-        if ($validated['action'] === 'valider') {
-            // Validation du pointage
-            $updateData = [
-                'vigile_id' => $validated['vigile_id'],
-                'estPresent' => true,
-                'estEnAttente' => false,
-                // Conversion des données temporaires en données définitives
-                'premierPointage' => $pointage->premierPointage_temp ?? $pointage->premierPointage,
-                'dernierPointage' => $pointage->dernierPointage_temp ?? $pointage->dernierPointage,
-                'estRetard' => $pointage->estRetard_temp ?? $pointage->estRetard
-            ];
-        } else {
-            // Rejet du pointage
-            $updateData = [
-                'estEnAttente' => false,
-                'estRejete' => true,
-                'vigile_id' => $validated['vigile_id']
-            ];
-        }
-    
-        $pointage->update($updateData);
+         if (!$pointage) {
+             $this->createLog('validation_pointage_echec', [
+                 'cardId' => $cardId,
+                 'error' => 'Pointage non trouvé ou déjà traité'
+             ], 'error');
 
-        $this->createLog('validation_pointage', [
-            'pointage_id' => $id,
-            'action' => $validated['action'],
-            'vigile_id' => $validated['vigile_id']
-        ]);
-    
-        return response()->json([
-            'status' => true,
-            'message' => $validated['action'] === 'valider' ? 'Pointage validé' : 'Pointage rejeté',
-            'data' => $pointage
-        ]);
-    }
+             return response()->json([
+                 'status' => false,
+                 'message' => 'Pointage non trouvé ou déjà traité'
+             ], 404);
+         }
+
+         $validated = $request->validate([
+             'vigile_id' => 'required|exists:utilisateurs,_id',
+             'action' => 'required|in:valider,rejeter',
+         ]);
+
+         if ($validated['action'] === 'valider') {
+             // Validation du pointage
+             $updateData = [
+                 'vigile_id' => $validated['vigile_id'],
+                 'estPresent' => true,
+                 'estEnAttente' => false,
+                 // Conversion des données temporaires en données définitives
+                 'premierPointage' => $pointage->premierPointage_temp ?? $pointage->premierPointage,
+                 'dernierPointage' => $pointage->dernierPointage_temp ?? $pointage->dernierPointage,
+                 'estRetard' => $pointage->estRetard_temp ?? $pointage->estRetard
+             ];
+         } else {
+             // Rejet du pointage
+             $updateData = [
+                 'estEnAttente' => false,
+                 'estRejete' => true,
+                 'vigile_id' => $validated['vigile_id']
+             ];
+         }
+
+         $pointage->update($updateData);
+
+         $this->createLog('validation_pointage', [
+             'cardId' => $cardId,
+             'action' => $validated['action'],
+             'vigile_id' => $validated['vigile_id']
+         ]);
+
+         return response()->json([
+             'status' => true,
+             'message' => $validated['action'] === 'valider' ? 'Pointage validé' : 'Pointage rejeté',
+             'data' => $pointage
+         ]);
+     }
 
     /**
      * Modification d'un pointage par un administrateur
@@ -312,36 +322,36 @@ class PointageController extends Controller
      * @return JsonResponse
      */
 
-    public function index(Request $request)
-    {
-        $query = Pointage::query();
-        // Filtre par date
-        if ($date = $request->input('date')) {
-            $query->whereDate('date', Carbon::parse($date));
-        }
+     public function index(Request $request)
+     {
+         $query = Pointage::query();
 
-            // Filtre par utilisateur
-        if ($userId = $request->input('user_id')) {
-            $query->where('user_id', $userId);
-        }
+         // Filtre par date
+         if ($date = $request->input('date')) {
+             $query->whereDate('date', Carbon::parse($date));
+         }
 
-        // Pagination des résultats
-        $pointages = $query->with(['utilisateur', 'vigile'])
-                          ->paginate($request->input('per_page', 15));
+         // Filtre par utilisateur
+         if ($userId = $request->input('user_id')) {
+             $query->where('user_id', $userId);
+         }
 
-        $this->createLog('consultation_pointages', [
-            'filtres' => [
-                'date' => $date,
-                'user_id' => $userId
-            ],
-            'nombre_resultats' => $pointages->total()
-        ]);
+         // Récupération des résultats sans pagination
+         $pointages = $query->with(['utilisateur', 'vigile'])->get();
 
-        return response()->json([
-            'status' => true,
-            'data' => $pointages
-        ]);
-    }
+         $this->createLog('consultation_pointages', [
+             'filtres' => [
+                 'date' => $date,
+                 'user_id' => $userId
+             ],
+             'nombre_resultats' => $pointages->count()
+         ]);
+
+         return response()->json([
+             'status' => true,
+             'data' => $pointages
+         ]);
+     }
 
         /**
      * Récupérer l'historique des pointages avec filtres
@@ -374,7 +384,7 @@ class PointageController extends Controller
             Carbon::parse($request->fin)
         ]);
 
-              // Filtre par utilisateur  
+              // Filtre par utilisateur
         if ($request->user_id) {
             $query->where('user_id', $request->user_id);
         }
@@ -440,7 +450,7 @@ class PointageController extends Controller
             Carbon::parse($validated['date_fin'])
         ]);
 
-        // Filtrage par cohorte 
+        // Filtrage par cohorte
         if (isset($validated['cohorte_id'])) {
             $query->whereHas('utilisateur', function($q) use ($validated) {
                 $q->where('cohorte_id', $validated['cohorte_id']);
@@ -610,4 +620,65 @@ class PointageController extends Controller
             'statistiques' => $statistiques
         ]);
     }
+
+
+    /**
+ * Récupérer les pointages du jour
+ * @return JsonResponse
+ */
+public function getPointagesJour()
+{
+    $today = Carbon::today();
+
+    $pointages = Pointage::whereDate('date', $today)
+        ->with(['utilisateur', 'vigile'])
+        ->get();
+
+    $this->createLog('consultation_pointages_jour', [
+        'date' => $today->format('Y-m-d'),
+        'nombre_resultats' => $pointages->count()
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'data' => $pointages
+    ]);
+}
+
+
+public function getUtilisateursPointes(Request $request)
+{
+   try {
+       $query = Pointage::where([
+           'date' => Carbon::today()->startOfDay(),
+           'estPresent' => true,
+           'vigile_id' => ['$ne' => null]
+       ]);
+
+       $pointages = $query->with(['utilisateur'])->get();
+
+       error_log("Debug pointages: " . json_encode([
+           'date' => Carbon::today()->format('Y-m-d'),
+           'count' => $pointages->count(),
+           'resultats' => $pointages->toArray()
+       ]));
+
+       return response()->json([
+           'status' => true,
+           'data' => $pointages
+       ]);
+
+   } catch (\Exception $e) {
+       error_log("Erreur pointages: " . $e->getMessage() . "\n" .
+                "File: " . $e->getFile() . "\n" .
+                "Line: " . $e->getLine() . "\n" .
+                "Trace: " . $e->getTraceAsString());
+
+       return response()->json([
+           'status' => false,
+           'message' => 'Erreur lors de la récupération des pointages',
+           'error' => $e->getMessage()
+       ], 500);
+   }
+}
 }

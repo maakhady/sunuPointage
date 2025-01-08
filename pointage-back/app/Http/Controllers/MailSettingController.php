@@ -63,7 +63,7 @@ class MailSettingController extends Controller
         try {
             $request->validate([
                 'token' => 'required',
-                'password' => 'required|min:6|confirmed'
+                'password' => 'required|min:8|confirmed'
             ]);
 
             $user = Utilisateur::where('reset_token', $request->token)

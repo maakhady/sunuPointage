@@ -135,7 +135,6 @@ class AuthController extends Controller
                 'fonction' => $request->departement_id ? $request->fonction : null,
                 'departement_id' => $request->departement_id,
                 'cohorte_id' => $request->cohorte_id,
-                'cardId' => $request->cardId,
                 'photo' => $request->photo,
                 'statut' => 'actif',
                 'role' => $request->role ?? 'utilisateur_simple',

@@ -14,6 +14,7 @@ class Pointage extends Model
 
     protected $fillable = [
         'user_id',
+        'cardId',
         'vigile_id',
         'date',
         'estPresent',
@@ -43,12 +44,17 @@ class Pointage extends Model
     // Relation avec l'utilisateur qui pointe
     public function utilisateur()
     {
-        return $this->belongsTo(Utilisateur::class, 'user_id');
+        return $this->belongsTo(Utilisateur::class, 'user_id')
+                    ->where('cardId', $this->cardId);
     }
+
 
     // Relation avec le vigile qui valide
     public function vigile()
     {
         return $this->belongsTo(Utilisateur::class, 'vigile_id');
     }
+
+
 }
+

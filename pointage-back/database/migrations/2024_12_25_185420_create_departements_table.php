@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::connection('mongodb')->create('departements', function (Blueprint $table) {
             $table->id();  // L'ID dans MongoDB est un ObjectId par défaut
             $table->string('nom');
-            $table->string('Id');
+            // $table->string('Id');
             $table->timestamps();  // Ajoute created_at et updated_at
         });
     }

@@ -247,54 +247,91 @@ class UtilisateurController extends Controller
      * @param ImportRequest $request Requête contenant le fichier CSV
      * @return \Illuminate\Http\JsonResponse Résultat de l'importation
      */
-    // public function import(ImportRequest $request)
-    // {
-    //     try {
-    //         $importedUsers = [];
-    //         $errors = [];
-            
-    //         $csvData = array_map('str_getcsv', file($request->file('file')->getPathname()));
-    //         $headers = array_shift($csvData);
+    public function importCohorte(ImportRequest $request,  $cohorte = null)
+    {
+        try {
+            $importedUsers = [];
+            $errors = [];
+    
+            $csvData = array_map('str_getcsv', file($request->file('file')->getPathname()));
+            $headers = array_shift($csvData);
+    
+            // Validation de l'en-tête (Important)
+            $expectedHeaders = [ // Ajustez selon vos besoins
+                'nom', 'prenom', 'email', 'telephone', 'photo', 'cardId',
+                'matricule',  'adresse', 'role'
+            ];
+    
+            if (array_diff($expectedHeaders, $headers) || array_diff($headers, $expectedHeaders)) {
+                return response()->json(['status' => false, 'message' => 'En-tête CSV invalide. Les colonnes attendues sont : ' . implode(', ', $expectedHeaders)], 400);
+            }
+    
+            foreach ($csvData as $key => $row) {
+                try {
+                    $userData = array_combine($headers, $row);
+    
+                    // Validation des données (Crucial)
+                    $validator = Validator::make($userData, [
+                        'nom' => 'required|string|max:255',
+                        'prenom' => 'required|string|max:255',
+                        'email' => 'required|email|unique:utilisateurs,email',
+                        'telephone' => 'nullable|string|max:20',
+                        'photo' => 'nullable|string|max:255',
+                        'cardId' => 'nullable|string|max:255',
+                        'matricule' => 'nullable|string|max:255',
+                        'type' => 'nullable|string|max:255',
+                        'adresse' => 'nullable|string|max:255',
+                        'role' => 'nullable|string|max:255',
 
-    //         foreach ($csvData as $row) {
-    //             try {
-    //                 $userData = array_combine($headers, $row);
-    //                 $userData['password'] = Hash::make($userData['password'] ?? 'password123');
-    //                 $user = Utilisateur::create($userData);
-    //                 $importedUsers[] = $user;
+                        
+                    ]);
+    
+    
+                    if ($validator->fails()) {
+                        $errors[] = "Ligne " . ($key + 2) . ": " . $validator->errors()->first();
+                        continue; // Passe à la ligne suivante
+                    }
+                    $userData['password'] = Hash::make($userData['password'] ?? 'password123');
                     
-    //                 // Log d'import
-    //                 Journal::create([
-    //                     'user_id' => Auth::id(),
-    //                     'action' => 'import_utilisateur',
-    //                     'details' => [
-    //                         'utilisateur_id' => $user->id,
-    //                         'source' => 'import_csv',
-    //                         'timestamp' => now()
-    //                     ]
-    //                 ]);
-    //             } catch (\Exception $e) {
-    //                 $errors[] = "Ligne {$row[0]}: " . $e->getMessage();
-    //             }
-    //         }
+                    if($cohorte){
+                        $userData['cohorte_id'] = $cohorte;
+                        $userData['type'] = 'apprenant';
+                    }
+                    $user = Utilisateur::create($userData);
+                    $importedUsers[] = $user;
+    
+                    Journal::create([
+                        'user_id' => Auth::id(),
+                        'action' => 'import_utilisateur',
+                        'details' => [
+                            'utilisateur_id' => $user->id,
+                            'source' => 'import_csv',
+                            'timestamp' => now(),
+                            'row_data' => $userData
+                        ]
+                    ]);
+                } catch (\Exception $e) {
+                    $errors[] = "Ligne " . ($key + 2) . ": " . $e->getMessage();
+                }
+            }
+    
+            return response()->json([
+                'status' => true,
+                'message' => 'Importation réussie',
+                'data' => [
+                    'imported' => $importedUsers,
+                    'errors' => $errors
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], $e->getCode() ?: 500);
+        }
+    }
 
-    //         return response()->json([
-    //             'status' => true,
-    //             'message' => 'Importation réussie',
-    //             'data' => [
-    //                 'imported' => $importedUsers,
-    //                 'errors' => $errors
-    //             ]
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => $e->getMessage()
-    //         ], $e->getCode() ?: 500);
-    //     }
-    // }
-
-    public function import(ImportRequest $request, $departement = null, $cohorte = null)
+    public function import(ImportRequest $request, $departement = null )
 {
     try {
         $importedUsers = [];
@@ -306,7 +343,7 @@ class UtilisateurController extends Controller
         // Validation de l'en-tête (Important)
         $expectedHeaders = [ // Ajustez selon vos besoins
             'nom', 'prenom', 'email', 'password', 'telephone', 'photo', 'cardId',
-            'matricule', 'type', 'statut', 'role', 'adresse', 'fonction', 
+            'matricule',   'role', 'adresse', 'fonction', 
         ];
 
         if (array_diff($expectedHeaders, $headers) || array_diff($headers, $expectedHeaders)) {
@@ -345,10 +382,7 @@ class UtilisateurController extends Controller
                     $userData['departement_id'] = $departement;
                     $userData['type'] = 'employe';
                 }
-                if($cohorte){
-                    $userData['cohorte_id'] = $cohorte;
-                    $userData['type'] = 'apprenant';
-                }
+            
                 $user = Utilisateur::create($userData);
                 $importedUsers[] = $user;
 

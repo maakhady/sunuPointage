@@ -37,6 +37,11 @@ class Utilisateur extends Authenticatable implements JWTSubject
         'fonction',
         'email_verified_at',
         'remember_token',
+
+        // Ajout des nouveaux champs pour la réinitialisation
+        'reset_token',
+        'reset_token_expiry'
+
     ];
 
     protected $hidden = [
@@ -46,6 +51,9 @@ class Utilisateur extends Authenticatable implements JWTSubject
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+
+        'reset_token_expiry' => 'datetime',
+
         
     ];
 
