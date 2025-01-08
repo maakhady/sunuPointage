@@ -1,0 +1,268 @@
+<div class="container-fluid p-0">
+
+
+<!-- Ajoutez ceci au début du template, juste après l'ouverture de votre conteneur principal -->
+<div class="container-fluid p-0">
+  <!-- Message modal pour l'erreur de carte -->
+  <div class="modal fade" [class.show]="!!cardError" [style.display]="cardError ? 'block' : 'none'" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            Erreur d'Accès
+          </h5>
+          <button type="button" class="btn-close btn-close-white" (click)="closeCardError()"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">{{cardError?.message}}</p>
+          <small class="text-muted">ID de la carte : {{cardError?.cardId}}</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backdrop pour la modal -->
+  <div class="modal-backdrop fade"
+       [class.show]="!!cardError"
+       [style.display]="cardError ? 'block' : 'none'">
+  </div>
+
+  <!-- Reste de votre contenu... -->
+
+  <!-- Message d'erreur -->
+  <div *ngIf="error" class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+    {{ error }}
+    <button type="button" class="btn-close" (click)="error = null"></button>
+  </div>
+
+  <!-- Indicateur de connexion Socket -->
+  <div *ngIf="showReconnectingMessage" class="alert alert-warning m-3">
+    Connexion en cours de rétablissement...
+  </div>
+
+  <div class="row g-0">
+    <!-- Sidebar -->
+    <div class="col-auto sidebar">
+      <div class="d-flex flex-column h-100 p-4">
+        <div class="mb-5">
+          <img src="assets/images/logo.png" alt="Logo" class="img-fluid" style="max-width: 180px;">
+        </div>
+
+        <div class="mt-auto">
+          <div class="door-status text-center text-white">
+            <div class="circle-status mx-auto mb-3"
+                 [ngClass]="{
+                   'status-red': doorCommand === 'OPEN',
+                   'status-blue': doorCommand === 'CLOSE'
+                 }">
+            </div>
+            <div class="text-uppercase">Porte</div>
+            <div class="text-uppercase mt-2">
+              {{ doorCommand === 'OPEN' ? 'Ouverte' : 'Fermée' }}
+            </div>
+            <!-- Boutons de contrôle -->
+            <div class="mt-3">
+              <button class="btn btn-danger me-2"
+                      (click)="controlDoor('OPEN')"
+                      [disabled]="doorCommand === 'OPEN'">
+                <i class="bi bi-unlock"></i> Ouvrir
+              </button>
+              <button class="btn btn-success"
+                      (click)="controlDoor('CLOSE')"
+                      [disabled]="doorCommand === 'CLOSE'">
+                <i class="bi bi-lock"></i> Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <app-nav-bar
+      (NavCollapsedMob)="navMobClick()"
+      (NavCollapse)="this.navCollapsed = !this.navCollapsed"
+    />
+
+    <div class="col main-content">
+      <div class="p-4">
+        <br>
+        <br>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h2 class="bleu">DASHBOARD VIGILE</h2>
+          <div class="current-time">
+            {{ currentDate | date:'dd MMM yyyy HH:mm:ss' }}
+          </div>
+        </div>
+
+        <!-- Loader -->
+        <div *ngIf="loading" class="text-center p-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Chargement...</span>
+          </div>
+        </div>
+
+        <!-- Contenu principal -->
+        <ng-container *ngIf="!loading">
+          <ng-container *ngIf="nouveauPointage; else listePresences">
+            <!-- Card de validation du pointage -->
+            <div class="validation-card">
+              <div class="text-center mb-4">
+                <img [src]="nouveauPointage.photo"
+                     class="rounded-circle profile-img"
+                     [alt]="nouveauPointage.nom"
+                     onerror="this.src='assets/images/user/avatar-1.jpg'">
+                <h3 class="mt-3">{{nouveauPointage.prenom}} {{nouveauPointage.nom}}</h3>
+                <p class="text-muted">{{nouveauPointage.fonction}}</p>
+              </div>
+
+              <div class="identification-details mb-4">
+                <!-- <div class="detail-item">
+                  <span class="label">Identifiant :</span>
+                  <span class="value">{{nouveauPointage.id}}</span>
+                </div> -->
+                <div class="detail-item">
+                  <span class="label">Matricule :</span>
+                  <span class="value">{{nouveauPointage.matricule}}</span>
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-success px-4"
+                        (click)="validerPointage(nouveauPointage.cardId)"
+                        [disabled]="!isSocketConnected">
+                  <i class="bi bi-check-lg me-2"></i>VALIDER
+                </button>
+                <button class="btn btn-danger px-4"
+                        (click)="refuserPointage(nouveauPointage.cardId)"
+                        [disabled]="!isSocketConnected">
+                  <i class="bi bi-x-lg me-2"></i>REFUSER
+                </button>
+              </div>
+            </div>
+
+            <!-- Tableau des derniers pointages -->
+            <div class="derniers-pointages mt-4">
+              <div class="date-indicator mb-3">
+                <i class="bi bi-calendar"></i>
+                {{currentDate | date:'dd MMM yyyy'}}
+              </div>
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Matricule</th>
+                      <th>Heure</th>
+                      <th>Nom & Prénom</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let pointage of derniersPointages">
+                      <td>{{pointage.matricule}}</td>
+                      <td>{{pointage.heure}}</td>
+                      <td>{{pointage.nom}} {{pointage.prenom}}</td>
+                      <td>
+                        <span [class]="'status-badge ' + pointage.status.toLowerCase()">
+                          {{pointage.status}}
+                        </span>
+                      </td>
+                    </tr>
+                    <tr *ngIf="derniersPointages.length === 0">
+                      <td colspan="4" class="text-center">Aucun pointage récent</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- Template pour la liste des présences -->
+          <ng-template #listePresences>
+            <div class="search-wrapper mb-4">
+              <div class="input-group">
+                <span class="input-group-text">
+                  <i class="bi bi-search"></i>
+                </span>
+                <input type="search"
+                       [(ngModel)]="searchQuery"
+                       placeholder="Rechercher un utilisateur..."
+                       class="form-control search-input">
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Matricule</th>
+                    <th>Photo</th>
+                    <th>Nom et Prenom</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Entrée</th>
+                    <th>Sortie</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let pointage of paginatedUtilisateurs">
+                    <td>{{pointage.matricule}}</td>
+                    <td>
+                      <img [src]="pointage.photo"
+                           [alt]="pointage.nom"
+                           class="rounded-circle user-image"
+                           onerror="this.src='assets/images/user/avatar-1.jpg'">
+                    </td>
+                    <td>{{pointage.prenom}} {{pointage.nom}}</td>
+                    <td>{{pointage.type}}</td>
+                    <td>
+                      <span class="status-badge"
+                            [ngClass]="{
+                              'present': pointage.status === 'Présent',
+                              'retard': pointage.status === 'Retard',
+                              'absent': pointage.status === 'Absent'
+                            }">
+                        {{pointage.status}}
+                      </span>
+                    </td>
+                    <td>{{pointage.entree || '---'}}</td>
+                    <td>{{pointage.sortie || '---'}}</td>
+                  </tr>
+                  <tr *ngIf="paginatedUtilisateurs.length === 0">
+                    <td colspan="7" class="text-center">Aucun utilisateur trouvé</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination améliorée -->
+            <nav *ngIf="filteredUtilisateurs.length > itemsPerPage"
+                 aria-label="Navigation des pages">
+              <ul class="pagination justify-content-center">
+                <li class="page-item" [class.disabled]="currentPage === 1">
+                  <a class="page-link" (click)="currentPage = currentPage - 1" role="button">
+                    <i class="bi bi-chevron-left"></i>
+                  </a>
+                </li>
+                <li class="page-item"
+                    *ngFor="let page of [].constructor(totalPages); let i = index"
+                    [class.active]="currentPage === i + 1">
+                  <a class="page-link" (click)="currentPage = i + 1" role="button">
+                    {{ i + 1 }}
+                  </a>
+                </li>
+                <li class="page-item" [class.disabled]="currentPage === totalPages">
+                  <a class="page-link" (click)="currentPage = currentPage + 1" role="button">
+                    <i class="bi bi-chevron-right"></i>
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </ng-template>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+</div>

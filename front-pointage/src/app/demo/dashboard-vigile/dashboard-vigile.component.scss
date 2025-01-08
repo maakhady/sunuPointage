@@ -1,0 +1,258 @@
+:host {
+  display: block;
+  height: 100vh;
+}
+
+// Variables
+$primary-blue: #2196F3;
+$light-bg: #f8f9fa;
+$sidebar-width: 250px;
+$sidebar-mobile-width: 200px;
+
+// Couleurs pour les badges
+$present-bg: #e8f5e9;
+$present-color: #2e7d32;
+$retard-bg: #fff3e0;
+$retard-color: #f57c00;
+$absent-bg: #ffe8e8;
+$absent-color: #fd3c3c;
+
+// Styles généraux
+.bleu {
+  color: $primary-blue;
+}
+
+// Layout
+.sidebar {
+  width: $sidebar-width;
+  background-color: #e8f3ff;
+  height: 100vh;
+  position: fixed;
+
+  .door-status {
+    background-color: $primary-blue;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    color: white;
+
+    .circle-status {
+      width: 64px;
+      height: 64px;
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+    }
+  }
+}
+
+.main-content {
+  margin-left: $sidebar-width;
+  background-color: $light-bg;
+  min-height: 100vh;
+}
+
+// Composants de recherche
+.search-wrapper {
+  position: relative;
+  max-width: 400px;
+
+  .search-input {
+    max-width: 300px;
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+  }
+}
+
+// Tableau principal
+.table-container {
+  margin-top: 20px;
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.table {
+  th {
+    font-weight: 500;
+    color: #6c757d;
+    padding: 1rem;
+  }
+
+  td {
+    vertical-align: middle;
+    padding: 1rem;
+  }
+}
+
+// Card de validation
+.validation-card {
+  background: white;
+  border-radius: 10px;
+  padding: 2rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  max-width: 500px;
+  margin: 2rem auto;
+
+  .profile-img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .identification-details {
+    .detail-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+
+      .label {
+        color: $primary-blue;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .btn {
+    padding: 0.5rem 2rem;
+
+    &.btn-success {
+      background-color: $present-color;
+    }
+
+    &.btn-danger {
+      background-color: $absent-color;
+    }
+  }
+}
+
+// Derniers pointages
+.derniers-pointages {
+  background: white;
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+
+  .date-indicator {
+    color: #666;
+    margin-bottom: 1rem;
+
+    i {
+      margin-right: 0.5rem;
+    }
+  }
+}
+
+// Images et badges
+.user-image {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.status-badge {
+  font-weight: normal;
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+
+  &.present {
+    background-color: $present-bg;
+    color: $present-color;
+  }
+
+  &.retard {
+    background-color: $retard-bg;
+    color: $retard-color;
+  }
+
+  &.absent {
+    background-color: $absent-bg;
+    color: $absent-color;
+  }
+}
+
+// Pagination
+.pagination {
+  margin-top: 20px;
+
+  .page-link {
+    color: #000000;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #e9ecef;
+    }
+  }
+
+  .active .page-link {
+    background-color: $primary-blue;
+    border-color: $primary-blue;
+    color: white;
+  }
+}
+
+// Media Queries
+@media (max-width: 768px) {
+  .sidebar {
+    width: $sidebar-mobile-width;
+  }
+
+  .main-content {
+    margin-left: $sidebar-mobile-width;
+  }
+
+  .validation-card {
+    margin: 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+
+  .search-wrapper .search-input {
+    max-width: 100%;
+  }
+}
+
+// Animations pour la modal
+.modal {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+
+  &.show {
+    opacity: 1;
+  }
+
+  .modal-dialog {
+    transform: translateY(-10px);
+    transition: transform 0.3s ease;
+  }
+
+  &.show .modal-dialog {
+    transform: translateY(0);
+  }
+}
+
+.modal-backdrop {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+
+  &.show {
+    opacity: 0.5;
+  }
+}
+
+.modal-content {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}

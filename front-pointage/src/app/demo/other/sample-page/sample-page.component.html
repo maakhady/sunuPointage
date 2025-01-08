@@ -1,0 +1,63 @@
+<div class="row">
+  <div class="col-sm-12">
+    <app-card cardTitle="DETAILS DE L'UTILISATEUR" blockClass="pc-component">
+      <div class="row" *ngIf="employe">
+        <!-- Photo de l'employé -->
+        <div class="col-md-4 text-center mb-4">
+          <img [src]="employe.photo || 'assets/images/default-avatar.png'" 
+               class="img-fluid rounded-circle mb-3" 
+               alt="Photo de l'employé"
+               style="max-width: 200px;">
+        </div>
+        
+        <!-- Informations de l'employé -->
+        <div class="col-md-8">
+          <div class="row mb-3">
+            <div class="col-sm-6">
+              <h4 class="text-primary">{{employe.prenom}} {{employe.nom}}</h4>
+              <p class="text-muted mb-0">{{employe.fonction}}</p>
+            </div>
+            <div class="col-sm-6 text-end">
+              <span class="badge bg-success">{{employe.status}}</span>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-sm-6">
+              <div class="mb-3">
+                <label class="fw-bold">Matricule</label>
+                <p>{{employe.matricule}}</p>
+              </div>
+              <div class="mb-3">
+                <label class="fw-bold">Email</label>
+                <p>{{employe.email}}</p>
+              </div>
+              <div class="mb-3">
+                <label class="fw-bold">Téléphone</label>
+                <p>{{employe.telephone}}</p>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="mb-3">
+                <label class="fw-bold">Adresse</label>
+                <p>{{employe.adresse}}</p>
+              </div>
+              <div class="mb-3">
+                <label class="fw-bold">Département ID</label>
+                <p>{{employe.departement_id}}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message de chargement -->
+      <div *ngIf="!employe" class="text-center py-4">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Chargement...</span>
+        </div>
+        <p class="mt-2">Chargement des détails de l'employé...</p>
+      </div>
+    </app-card>
+  </div>
+</div>
