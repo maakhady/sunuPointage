@@ -1,64 +1,78 @@
-<h2 class="texte">Historique des absences et retards</h2><br>
-<!-- <div class="row">
-    @for (analytic of AnalyticEcommerce; track analytic) {
-      <div class="col-md-6 col-xl-4">
-        <app-card [showHeader]="false" blockClass="dashboard-card">
-          <h6 class="mb-2 f-w-400 text-muted">{{ analytic.title }}</h6>
-          <h4 class="mb-3">
-            {{ analytic.amount }}
-            <span class="badge {{ analytic.background }} border {{ analytic.border }} ">
-              <i antIcon type="{{ analytic.icon }}" theme="outline"></i>
-              {{ analytic.percentage }}
-            </span>
-          </h4>
-          <p class="mb-0 text-muted text-sm">
-            You made an extra
-            <span class="{{ analytic.color }}">{{ analytic.number }}</span>
-            this year
-          </p>
-        </app-card>
-        
-      </div>
-    }
-  
-    <div class="col-md-12 col-xl-8">
-      <h5 class="mb-3">Pointage Rescents</h5>
-      <div class="card tbl-card">
-        <div class="table-responsive">
-          <table class="table table-hover mb-0">
-            <thead>
-              <tr>
-                <th>TRACKING NO.</th>
-                <th>PRODUCT NAME</th>
-                <th>STATUS</th>
-                <th class="text-end">TOTAL ORDER</th>
-                <th class="text-end">TOTAL AMOUNT</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (order of recentOrder; track order) {
-                <tr>
-                  <td>
-                    <a href="javascript:" class="text-muted">{{ order.id }}</a>
-                  </td>
-                  <td>{{ order.name }}</td>
-                  <td>
-                    <span class="d-block">
-                      <i class="badge-circle {{ order.status_type }} f-10 m-r-5"></i>
-                      {{ order.status }}
-                    </span>
-                  </td>
-                  <td class="text-end">{{ order.quantity }}</td>
-                  <td class="text-end">{{ order.amount }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
+<h3 class="texte">Historique des absences et retards</h3><br> <div class="row"> @for (analytic of AnalyticEcommerce; track analytic) { <div class="col-md-6 col-xl-4"> <app-card [showHeader]="false" blockClass="dashboard-card"> <h6 class="mb-2 f-w-300 text-muted">{{ analytic.title }}</h6> <h4 class="mb-3"> <span class="badge {{ analytic.background }} border {{ analytic.border }} ">
+
+  {{ analytic.percentage }}
+          </span>
+        </h4>
+        <p class="mb-0 text-muted text-sm">
+         Tous les utilisateurs
+        </p>
+      </app-card>
+      
     </div>
-   
-  
-   
-  </div> -->
-  
+  }
+  <div class="container mx-4 my-4">
+<div class="container mt-4">
+
+  <div class="table-responsive">
+    <ul class="list-unstyled">
+      <li class="d-flex d-md-inline-flex">
+        <i class="search f-12" antIcon type="search" theme="outline"></i>
+        <input
+          type="search"
+         
+          placeholder="Rechercher par nom, prénom, matricule ou email"
+          class="form-control w-200 w-md-auto">
+      </li>
+    </ul>
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Matricule</th>
+          <th>Nom</th>
+          <th>Prénom</th>
+          <th>Email</th>
+          <th>Date</th>
+          <th>Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let pointage of paginatedPointages()">
+          <td>{{ pointage.utilisateur.matricule }}</td>
+          <td>{{ pointage.utilisateur.nom }}</td>
+          <td>{{ pointage.utilisateur.prenom }}</td>
+          <td>{{ pointage.utilisateur.email }}</td>
+          <td>{{ pointage.date | date: 'dd/MM/yyyy' }}</td>
+          <td>
+            <span
+              [ngClass]="{
+                'bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium': pointage.estRetard_temp,
+                'bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium': !pointage.estPresent && !pointage.estEnAttente,
+                'bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium': pointage.estPresent
+              }"
+            >
+              {{ pointage.estRetard_temp ? 'Retard' : pointage.estPresent ? 'Présent' : 'Absent' }}
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <nav aria-label="Page navigation">
+    <ul class="pagination justify-content-left">
+      <li class="page-item" [class.disabled]="currentPage === 1">
+        <a class="page-link" (click)="previousPage()" aria-label="Previous">
+          <span aria-hidden="true">&laquo;</span>
+        </a>
+      </li>
+      <li class="page-item" *ngFor="let page of [].constructor(totalPages); let i = index" [class.active]="currentPage === i + 1">
+        <a class="page-link" (click)="currentPage = i + 1">{{ i + 1 }}</a>
+      </li>
+      <li class="page-item" [class.disabled]="currentPage === totalPages">
+        <a class="page-link" (click)="nextPage()" aria-label="Next">
+          <span aria-hidden="true">&raquo;</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+</div>

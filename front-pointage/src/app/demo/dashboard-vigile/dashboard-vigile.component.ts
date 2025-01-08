@@ -36,7 +36,7 @@ export class DashboardVigileComponent implements OnInit, OnDestroy {
   showReconnectingMessage: boolean = false;
   isSocketConnected: boolean = false;
   cardError: {cardId: string, message: string, code: number} | null = null;
-  
+
 
   // Navigation
   navCollapsed: boolean = false;

@@ -26,11 +26,15 @@ export class CohortesComponent implements OnInit {
   filteredCohortes: Cohorte[] = [];
   searchQuery: string = '';
 
+  currentPage: number = 1;
+  itemsPerPage: number = 6;
+  totalPages: number = 0;
+
   constructor(private apiService: ApiService, private router: Router) {
     this.cohorteForm = new FormGroup({
       nom: new FormControl('', [Validators.required]),
       annee_scolaire: new FormControl('', [Validators.required]),
-      promo: new FormControl(0, [Validators.required]),
+      promo: new FormControl(1, [Validators.required]),
       identifiant: new FormControl({ value: '', disabled: true })
     });
   }
@@ -45,6 +49,7 @@ export class CohortesComponent implements OnInit {
         console.log('Cohortes reçues :', cohortes);
         this.cohortes = cohortes;
         this.filteredCohortes = cohortes; // Initialisation du tableau filtré
+        this.totalPages = Math.ceil(this.cohortes.length / this.itemsPerPage);
         this.loading = false;
       },
       error: (err) => {
@@ -103,12 +108,12 @@ export class CohortesComponent implements OnInit {
           next: () => {
             this.loadCohortes();
             this.resetForm();
-            window.location.reload();
             this.closeModal('exampleModal');
+            window.location.reload();
           },
           error: (err) => {
             console.error('Erreur lors de l\'ajout:', err);
-            alert('Erreur lors de l\'ajout de la cohorte');
+            alert(' la cohorte existe deja');
           }
         });
       }
@@ -134,8 +139,10 @@ export class CohortesComponent implements OnInit {
   onSearch(): void {
     console.log('Recherche en cours pour:', this.searchQuery);
     this.filteredCohortes = this.cohortes.filter(cohorte =>
-      cohorte.nom.toLowerCase().includes(this.searchQuery.toLowerCase()) 
+      cohorte.nom.toLowerCase().includes(this.searchQuery.toLowerCase())
     );
+    this.totalPages = Math.ceil(this.filteredCohortes.length / this.itemsPerPage);
+    this.currentPage = 1; // Réinitialiser la page actuelle lors de la recherche
     console.log('Cohortes filtrées:', this.filteredCohortes);
   }
 
@@ -147,6 +154,19 @@ export class CohortesComponent implements OnInit {
     this.router.navigate(['/cohortes', cohorteId, 'apprenants']);
   }
 
+
+
+
+
+
+
+
+
+
+
+
+  cohorteToDelete: any = null;
+
   deleteCohorte(id: string): void {
     const cohorte = this.cohortes.find(c => c.id === id);
     
@@ -154,22 +174,60 @@ export class CohortesComponent implements OnInit {
       alert('Cohorte non trouvée');
       return;
     }
-
+    
     if (this.getNombreApprenants(cohorte) > 0) {
       alert('Impossible de supprimer une cohorte qui contient des apprenants');
       return;
     }
+    
+    // Stocke la cohorte à supprimer et ouvre le modal
+    this.cohorteToDelete = cohorte;
+    const modal = new bootstrap.Modal(document.getElementById('deleteCohorteModal'));
+    modal.show();
+  }
 
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette cohorte ?')) {
-      this.apiService.deleteCohorte(id).subscribe({
+  confirmDelete(): void {
+    if (this.cohorteToDelete) {
+      this.apiService.deleteCohorte(this.cohorteToDelete.id).subscribe({
         next: () => {
+          // Ferme le modal
+          const modal = bootstrap.Modal.getInstance(document.getElementById('deleteCohorteModal'));
+          modal?.hide();
+          
           this.loadCohortes();
+          this.cohorteToDelete = null;
         },
         error: (err) => {
           console.error('Erreur lors de la suppression:', err);
           alert('Erreur lors de la suppression de la cohorte');
+          this.cohorteToDelete = null;
         }
       });
+    }
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getPaginatedCohortes(): Cohorte[] {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    return this.filteredCohortes.slice(startIndex, endIndex);
+  }
+
+  changePage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
     }
   }
 }

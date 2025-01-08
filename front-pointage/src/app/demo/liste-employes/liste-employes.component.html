@@ -1,108 +1,537 @@
+<button onclick="history.back()" class="btn btn-secondary">
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16">
+    <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+  </svg>
+</button>
+
 <div class="container mt-4">
+  <!-- Titre et actions -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
+    <h2 class="bleu">Liste des Employés</h2>
+    <div class="d-flex flex-column flex-md-row align-items-start">
+      <!-- Boutons d'action -->
+      <div class="d-flex flex-column flex-md-row me-md-3">
+        <input
+          #fileInput
+          type="file"
+          accept=".csv"
+          style="display: none"
+          (change)="onFileSelected($event)"
+        >
+        <button
+          class="btn btn-success me-2 mb-2 mb-md-0"
+          (click)="fileInput.click()"
+          [disabled]="isImporting">
+          <span *ngIf="isImporting">
+            <i class="spinner-border spinner-border-sm me-1"></i>
+            Importation en cours...
+          </span>
+          <span *ngIf="!isImporting">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cloud-arrow-down" style="margin: 5px  10px 5px 0px;" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M7.646 10.854a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0-.708-.708L8.5 9.293V5.5a.5.5 0 0 0-1 0v3.793L6.354 8.146a.5.5 0 1 0-.708.708z"/>
+              <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383m.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z"/>
+            </svg>
+            Importer CSV
+          </span>
+        </button>
+        <button class="btn btn-primary me-2 mb-2 mb-md-0" (click)="openAddEmployeModal()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-plus" style="margin: 5px  10px 5px 0px;" viewBox="0 0 16 16">
+            <path d="M6 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H1s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C9.516 10.68 8.289 10 6 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z"/>
+            <path fill-rule="evenodd" d="M13.5 5a.5.5 0 0 1 .5.5V7h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V8h-1.5a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5"/>
+          </svg>
+          Ajout employe
+        </button>
+        <button class="btn btn-outline-primary me-2 mb-2 mb-md-0" (click)="downloadCSVTemplate()">
+          <i class="bi bi-download me-1"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-filetype-csv" style="margin: 5px  10px 5px 0px;" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5zM3.517 14.841a1.13 1.13 0 0 0 .401.823q.195.162.478.252.284.091.665.091.507 0 .859-.158.354-.158.539-.44.187-.284.187-.656 0-.336-.134-.56a1 1 0 0 0-.375-.357 2 2 0 0 0-.566-.21l-.621-.144a1 1 0 0 1-.404-.176.37.37 0 0 1-.144-.299q0-.234.185-.384.188-.152.512-.152.214 0 .37.068a.6.6 0 0 1 .246.181.56.56 0 0 1 .12.258h.75a1.1 1.1 0 0 0-.2-.566 1.2 1.2 0 0 0-.5-.41 1.8 1.8 0 0 0-.78-.152q-.439 0-.776.15-.337.149-.527.421-.19.273-.19.639 0 .302.122.524.124.223.352.367.228.143.539.213l.618.144q.31.073.463.193a.39.39 0 0 1 .152.326.5.5 0 0 1-.085.29.56.56 0 0 1-.255.193q-.167.07-.413.07-.175 0-.32-.04a.8.8 0 0 1-.248-.115.58.58 0 0 1-.255-.384zM.806 13.693q0-.373.102-.633a.87.87 0 0 1 .302-.399.8.8 0 0 1 .475-.137q.225 0 .398.097a.7.7 0 0 1 .272.26.85.85 0 0 1 .12.381h.765v-.072a1.33 1.33 0 0 0-.466-.964 1.4 1.4 0 0 0-.489-.272 1.8 1.8 0 0 0-.606-.097q-.534 0-.911.223-.375.222-.572.632-.195.41-.196.979v.498q0 .568.193.976.197.407.572.626.375.217.914.217.439 0 .785-.164t.55-.454a1.27 1.27 0 0 0 .226-.674v-.076h-.764a.8.8 0 0 1-.118.363.7.7 0 0 1-.272.25.9.9 0 0 1-.401.087.85.85 0 0 1-.478-.132.83.83 0 0 1-.299-.392 1.7 1.7 0 0 1-.102-.627zm8.239 2.238h-.953l-1.338-3.999h.917l.896 3.138h.038l.888-3.138h.879z"/>
+          </svg>
+          Télécharger le modèle CSV
+        </button>
+        <button class="btn btn-danger me-1 mb-2 mb-md-0" [disabled]="!hasSelectedEmployes()" (click)="onActionSelected()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3" style="margin: 5px  10px 5px 0px;" viewBox="0 0 16 16">
+            <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 0-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/>
+          </svg>
+          Supprimer plusieurs
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Messages d'alerte -->
+  <div class="mt-3">
+    <div *ngIf="showSuccessMessage" class="alert alert-success alert-dismissible fade show" role="alert">
+      <div class="d-flex">
+        <div class="flex-shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-check-circle-fill me-2" viewBox="0 0 16 16">
+            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="font-weight-bold">{{ successMessage }}</div>
+          <div *ngIf="importSummary?.errors.length" class="mt-2">
+            <small class="text-muted">
+              {{ importSummary.errors.length }} erreur(s) rencontrée(s):
+            </small>
+            <ul class="mt-1 mb-0 ps-3">
+              <li *ngFor="let error of importSummary.errors" class="text-danger">
+                <small>{{ error }}</small>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="showSuccessMessage = false" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tableau -->
+  <div class="table-responsive">
     <ul class="list-unstyled">
+      <!-- Barre de recherche -->
       <li class="pc-h-item d-none d-md-inline-flex">
         <i class="search f-12" antIcon type="search" theme="outline"></i>
         <input
           type="search"
           [(ngModel)]="searchQuery"
           (input)="onSearch()"
-          placeholder="Rechercher par nom, prénom ou email"
+          placeholder="Rechercher par nom, prénom, matricule ou email"
           class="form-control"
         >
       </li>
     </ul>
-  
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
-      <h2 class="bleu">Liste des Employés</h2>
-      <div class="d-flex bloc flex-column flex-md-row">
-       
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>
+            <input type="checkbox"
+                   [checked]="allSelected"
+                   (change)="toggleSelectAll()"
+                   class="form-check-input" style=" border: solid 1px black; " >
+          </th>
+          <th>Matricule</th>
+          <th>Prénom</th>
+          <th>Nom</th>
+          <th>Email</th>
+          <th>Téléphone</th>
+          <th>Fonction</th>
+          <th>Cartes</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let employe of paginatedEmployes">
+          <td>
+            <input type="checkbox"
+                   [(ngModel)]="employe.selected"
+                   (change)="onSelectionChange()"
+                   class="form-check-input"  style=" border: solid 1px black; ">
+          </td>
+          <td>{{employe.matricule}}</td>
+          <td>{{employe.prenom}}</td>
+          <td>{{employe.nom}}</td>
+          <td>{{employe.email}}</td>
+          <td>{{employe.telephone}}</td>
+          <td>{{employe.fonction}}</td>
+          <td>
+            <div *ngIf="employe.cardId; else assignCard"  >
+              <button
+                class="btn"
+                [ngClass]="employe.statut === 'actif' ? 'btn-success' : 'btn-danger'"
+                (click)="updateStatus(employe)">
+                {{ employe.statut }}
+              </button>
+            </div>
+            <ng-template #assignCard>
+             
+              <button type="button" class="btn btn-primary" (click)="assignCardId(employe)">
+                Assigner
+              </button>
+              
+            </ng-template>
+          </td>
         
-        <button class="btn btn-primary me-3 mb-2 mb-md-0" (click)="toggleSelectAll()">
-          {{ allSelected ? 'Désélectionner tout' : 'Sélectionner tout' }}
-        </button>
-      </div>
-      <div>
-        <button class="btn btn-danger me-2" [disabled]="!hasSelectedEmployes()" (click)="onActionSelected()">
-          Supprimer
-        </button>
-      </div>
-    </div>
-  
-    <div class="table-responsive">
-      <table class="table table-hover">
-        <thead>
-          <tr>
-            <th>
-              <input type="checkbox" 
-                     [checked]="allSelected" 
-                     (change)="toggleSelectAll()"
-                     class="form-check-input">
-            </th>
-            <th>Matricule</th>
-            <th>Prénom</th>
-            <th>Nom</th>
-            <th>Email</th>
-            <th>Téléphone</th>
-            <th>Fonction</th>
-            <th>Adresse</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let employe of paginatedEmployes">
-            <td>
-              <input type="checkbox" 
-                     [(ngModel)]="employe.selected"
-                     (change)="onSelectionChange()"
-                     class="form-check-input">
-            </td>
-            <td>{{employe.matricule}}</td>
-            <td>{{employe.prenom}}</td>
-            <td>{{employe.nom}}</td>
-            <td>{{employe.email}}</td>
-            <td>{{employe.telephone}}</td>
-            <td>{{employe.fonction}}</td>
-            <td>{{employe.adresse}}</td>
-            <td>
-              <button class="btn btn-link text-secondary p-0 me-2" (click)="editEmploye(employe)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
-                  <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                  <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
-                </svg>
-              </button>
-              <button class="btn btn-link text-danger me-2 p-0" (click)="deleteEmploye(employe.id)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
-                  <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-                  <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
-                </svg>
-              </button>
-              <button class="btn btn-link text-secondary me-2 p-0" (click)="viewEmployeDetails(employe)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-fill" viewBox="0 0 16 16">
-                  <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0"/>
-                  <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"/>
-                </svg>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  
-    <nav aria-label="Page navigation">
-      <ul class="pagination">
-        <li class="page-item" [class.disabled]="currentPage === 1">
-          <a class="page-link" (click)="currentPage = currentPage - 1" aria-label="Previous">
-            <span aria-hidden="true">&laquo;</span>
-          </a>
-        </li>
-        <li class="page-item" *ngFor="let page of [].constructor(totalPages); let i = index" [class.active]="currentPage === i + 1">
-          <a class="page-link" (click)="currentPage = i + 1">{{ i + 1 }}</a>
-        </li>
-        <li class="page-item" [class.disabled]="currentPage === totalPages">
-          <a class="page-link" (click)="currentPage = currentPage + 1" aria-label="Next">
-            <span aria-hidden="true">&raquo;</span>
-          </a>
-        </li>
-      </ul>
-    </nav>
+          <td>
+            <button class="btn btn-link text-secondary p-0 me-2" (click)="openEditEmployeModal(employe)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
+                <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 1 2.5 15h11a1.5 1.5 0 0 1 1.5-1.5v-6a.5.5 0 0 1-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 1 1 2.5z"/>
+              </svg>
+            </button>
+            <button class="btn btn-link text-danger me-2 p-0" (click)="deleteEmploye(employe.id)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+              </svg>
+            </button>
+            <button class="btn btn-link text-secondary me-2 p-0" (click)="viewEmployeDetails(employe)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-fill" viewBox="0 0 16 16">
+                <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0"/>
+                <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"/>
+              </svg>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
+
+  <!-- Pagination -->
+  <nav aria-label="Page navigation">
+    <ul class="pagination">
+      <li class="page-item" [class.disabled]="currentPage === 1">
+        <a class="page-link" (click)="currentPage = currentPage - 1" aria-label="Previous">
+          <span aria-hidden="true">&laquo;</span>
+        </a>
+      </li>
+      <li class="page-item" *ngFor="let page of [].constructor(totalPages); let i = index" [class.active]="currentPage === i + 1">
+        <a class="page-link" (click)="currentPage = i + 1">{{ i + 1 }}</a>
+      </li>
+      <li class="page-item" [class.disabled]="currentPage === totalPages">
+        <a class="page-link" (click)="currentPage = currentPage + 1" aria-label="Next">
+          <span aria-hidden="true">&raquo;</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+</div>
+
+<!-- Modal de confirmation pour suppression -->
+<div class="modal fade" id="deleteEmployeModal" tabindex="-1" aria-labelledby="deleteEmployeModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteEmployeModalLabel">Confirmation de suppression</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Êtes-vous sûr de vouloir supprimer l'employé "{{ employeToDelete?.nom }} {{ employeToDelete?.prenom }}" ?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-danger" (click)="confirmDelete()">Supprimer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmation pour suppression multiple -->
+<div class="modal fade" id="deleteMultipleEmployesModal" tabindex="-1" aria-labelledby="deleteMultipleEmployesModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteMultipleEmployesModalLabel">Confirmation de suppression multiple</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Êtes-vous sûr de vouloir supprimer ces {{ selectedEmployesToDelete.length }} employé(s) ?</p>
+        <div class="mt-3">
+          <strong>Employés sélectionnés :</strong>
+          <ul class="list-unstyled mt-2">
+            <li *ngFor="let employe of selectedEmployesToDelete">
+              {{ employe.nom }} {{ employe.prenom }}
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-danger" (click)="confirmMultipleDelete()">
+          Supprimer {{ selectedEmployesToDelete.length }} employé(s)
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+<!-- Modal pour ajouter un employé -->
+<!-- Modal pour ajouter un employé -->
+<div class="modal fade" id="addEmployeModal" tabindex="-1" aria-labelledby="addEmployeModalLabel" aria-hidden="true">
+  <div class="modal-dialog" style="max-width: 900px;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <img src="assets/images/logo.png" alt="theme-logo" class="logo logo-dark logo-lg" />
+        <h4 class="modal-title" id="addEmployeModalLabel">Ajouter un Employé</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="employeForm">
+          <div class="row m-3">
+            <div class="col-md-6">
+              <label for="nomAdd" class="form-label">Nom</label>
+              <input type="text" class="form-control" id="nomAdd" formControlName="nom">
+              <div *ngIf="getControl('nom')?.invalid && getControl('nom')?.touched" class="text-danger">
+                <small *ngIf="getControl('nom')?.errors?.['required']">Le nom est obligatoire.</small>
+              </div>
+              <div *ngIf="apiErrors?.nom" class="text-danger">
+                <small *ngFor="let error of apiErrors.nom">{{ error }}</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="prenomAdd" class="form-label">Prénom</label>
+              <input type="text" class="form-control" id="prenomAdd" formControlName="prenom">
+              <div *ngIf="getControl('prenom')?.invalid && getControl('prenom')?.touched" class="text-danger">
+                <small *ngIf="getControl('prenom')?.errors?.['required']">Le prénom est obligatoire.</small>
+              </div>
+              <div *ngIf="apiErrors?.prenom" class="text-danger">
+                <small *ngFor="let error of apiErrors.prenom">{{ error }}</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="row m-3">
+            <div class="col-md-6">
+              <label for="adresseAdd" class="form-label">Adresse</label>
+              <input type="text" class="form-control" id="adresseAdd" formControlName="adresse">
+              <div *ngIf="getControl('adresse')?.invalid && getControl('adresse')?.touched" class="text-danger">
+                <small>L'adresse est obligatoire.</small>
+              </div>
+              <div *ngIf="apiErrors?.adresse" class="text-danger">
+                <small *ngFor="let error of apiErrors.adresse">{{ error }}</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="emailAdd" class="form-label">Email</label>
+              <input type="email" class="form-control" id="emailAdd" formControlName="email">
+              <div *ngIf="getControl('email')?.invalid && getControl('email')?.touched" class="text-danger">
+                <small *ngIf="getControl('email')?.errors?.['required']">L'email est obligatoire.</small>
+                <small *ngIf="getControl('email')?.errors?.['email']">L'email doit être valide.</small>
+              </div>
+              <div *ngIf="apiErrors?.email" class="text-danger">
+                <small *ngFor="let error of apiErrors.email">{{ error }}</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="row m-3">
+            <div class="col-md-6">
+              <label for="telephoneAdd" class="form-label">Téléphone</label>
+              <input type="text" class="form-control" id="telephoneAdd" formControlName="telephone">
+              <div *ngIf="getControl('telephone')?.invalid && getControl('telephone')?.touched" class="text-danger">
+                <small *ngIf="getControl('telephone')?.errors?.['required']">Le numéro de téléphone est obligatoire.</small>
+                <small *ngIf="getControl('telephone')?.errors?.['pattern']">Le numéro doit contenir 9 chiffres.</small>
+              </div>
+              <div *ngIf="apiErrors?.telephone" class="text-danger">
+                <small *ngFor="let error of apiErrors.telephone">{{ error }}</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="fonctionAdd" class="form-label">Fonction</label>
+              <select class="form-select" id="fonctionAdd" formControlName="fonction" (change)="onRoleChange($event)">
+                <option value="DG">Directeur</option>
+                <option value="Developpeur Front">Developpeur Front</option>
+                <option value="Developpeur Back">Developpeur Back</option>
+                <option value="UX/UI Design">UX/UI Design</option>
+                <option value="RH">RH</option>
+                <option value="Assistant RH">Assistant RH</option>
+                <option value="Comptable">Comptable</option>
+                <option value="Assistant Comptable">Assistant Comptable</option>
+                <option value="Ref_Dig">Referent Digital</option>
+                <option value="Vigile">Vigile</option>
+                <option value="Responsable Communication">Responsable Communication</option>
+              </select>
+              <div *ngIf="apiErrors?.fonction" class="text-danger">
+                <small *ngFor="let error of apiErrors.fonction">{{ error }}</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="row m-3">
+            <div class="col-md-6">
+              <label for="photoAdd" class="form-label">Photo</label>
+              <input type="file" class="form-control" id="photoAdd" (change)="onPhotoSelected($event)">
+            </div>
+            <div class="col-md-6" *ngIf="showPasswordField">
+              <label for="passwordAdd" class="form-label">Mot de passe</label>
+              <input type="password" class="form-control" id="passwordAdd" formControlName="password">
+              <div *ngIf="getControl('password')?.invalid && getControl('password')?.touched" class="text-danger">
+                <small *ngIf="getControl('password')?.errors?.['required']">Le mot de passe est obligatoire.</small>
+              </div>
+              <div *ngIf="apiErrors?.password" class="text-danger">
+                <small *ngFor="let error of apiErrors.password">{{ error }}</small>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="apiErrors?.general" class="text-danger">
+            <small *ngFor="let error of apiErrors.general">{{ error }}</small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger m-3" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-success m-3" (click)="addEmploye()" [disabled]="!employeForm.valid">Ajouter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+<!-- Modal pour modifier un employé -->
+<div class="modal fade" id="editEmployeModal" tabindex="-1" aria-labelledby="editEmployeModalLabel" aria-hidden="true">
+  <div class="modal-dialog" style="max-width: 900px;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <img src="assets/images/logo.png" alt="theme-logo" class="logo logo-dark logo-lg" />
+        <h4 class="modal-title" id="editEmployeModalLabel">Modifier un Employé</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="employeForm">
+          <div class="row m-3">
+            <div class="col-md-6">
+              <label for="nomEdit" class="form-label">Nom</label>
+              <input type="text" class="form-control" id="nomEdit" formControlName="nom">
+              <div *ngIf="getControl('nom')?.invalid && getControl('nom')?.touched" class="text-danger">
+                <small *ngIf="getControl('nom')?.errors?.['required']">Le nom est obligatoire.</small>
+              </div>
+              <div *ngIf="apiErrors?.nom" class="text-danger">
+                <small *ngFor="let error of apiErrors.nom">{{ error }}</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="prenomEdit" class="form-label">Prénom</label>
+              <input type="text" class="form-control" id="prenomEdit" formControlName="prenom">
+              <div *ngIf="getControl('prenom')?.invalid && getControl('prenom')?.touched" class="text-danger">
+                <small *ngIf="getControl('prenom')?.errors?.['required']">Le prénom est obligatoire.</small>
+              </div>
+              <div *ngIf="apiErrors?.prenom" class="text-danger">
+                <small *ngFor="let error of apiErrors.prenom">{{ error }}</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="row m-3">
+            <div class="col-md-6">
+              <label for="adresseEdit" class="form-label">Adresse</label>
+              <input type="text" class="form-control" id="adresseEdit" formControlName="adresse">
+              <div *ngIf="getControl('adresse')?.invalid && getControl('adresse')?.touched" class="text-danger">
+                <small>L'adresse est obligatoire.</small>
+              </div>
+              <div *ngIf="apiErrors?.adresse" class="text-danger">
+                <small *ngFor="let error of apiErrors.adresse">{{ error }}</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="emailEdit" class="form-label">Email</label>
+              <input type="email" class="form-control" id="emailEdit" formControlName="email">
+              <div *ngIf="getControl('email')?.invalid && getControl('email')?.touched" class="text-danger">
+                <small *ngIf="getControl('email')?.errors?.['required']">L'email est obligatoire.</small>
+                <small *ngIf="getControl('email')?.errors?.['email']">L'email doit être valide.</small>
+              </div>
+              <div *ngIf="apiErrors?.email" class="text-danger">
+                <small *ngFor="let error of apiErrors.email">{{ error }}</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="row m-3">
+            <div class="col-md-6">
+              <label for="telephoneEdit" class="form-label">Téléphone</label>
+              <input type="text" class="form-control" id="telephoneEdit" formControlName="telephone">
+              <div *ngIf="getControl('telephone')?.invalid && getControl('telephone')?.touched" class="text-danger">
+                <small *ngIf="getControl('telephone')?.errors?.['required']">Le numéro de téléphone est obligatoire.</small>
+                <small *ngIf="getControl('telephone')?.errors?.['pattern']">Le numéro doit contenir 10 chiffres.</small>
+              </div>
+              <div *ngIf="apiErrors?.telephone" class="text-danger">
+                <small *ngFor="let error of apiErrors.telephone">{{ error }}</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="fonctionEdit" class="form-label">Fonction</label>
+              <select class="form-select" id="fonctionEdit" formControlName="fonction" (change)="onRoleChange($event)">
+                <option value="DG">Directeur</option>
+                <option value="Developpeur Front">Developpeur Front</option>
+                <option value="Developpeur Back">Developpeur Back</option>
+                <option value="UX/UI Design">UX/UI Design</option>
+                <option value="RH">RH</option>
+                <option value="Assistant RH">Assistant RH</option>
+                <option value="Comptable">Comptable</option>
+                <option value="Assistant Comptable">Assistant Comptable</option>
+                <option value="Ref_Dig">Referent Digital</option>
+                <option value="Vigile">Vigile</option>
+                <option value="Responsable Communication">Responsable Communication</option>
+              </select>
+              <div *ngIf="apiErrors?.fonction" class="text-danger">
+                <small *ngFor="let error of apiErrors.fonction">{{ error }}</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="row m-3">
+            <div class="col-md-6">
+              <label for="photoEdit" class="form-label">Photo</label>
+              <input type="file" class="form-control" id="photoEdit" (change)="onPhotoSelected($event)">
+            </div>
+            <div class="col-md-6" *ngIf="showPasswordField">
+              <label for="passwordEdit" class="form-label">Mot de passe</label>
+              <input type="password" class="form-control" id="passwordEdit" formControlName="password">
+              <div *ngIf="getControl('password')?.invalid && getControl('password')?.touched" class="text-danger">
+                <small *ngIf="getControl('password')?.errors?.['required']">Le mot de passe est obligatoire.</small>
+              </div>
+              <div *ngIf="apiErrors?.password" class="text-danger">
+                <small *ngFor="let error of apiErrors.password">{{ error }}</small>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="apiErrors?.general" class="text-danger">
+            <small *ngFor="let error of apiErrors.general">{{ error }}</small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger m-3" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-success m-3" (click)="updateEmploye()" [disabled]="!employeForm.valid">Modifier</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- Button trigger modal -->
+
+<!-- Modal -->
+<div class="modal fade" id="assignCardModal" tabindex="-1" aria-labelledby="assignCardModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="assignCardModalLabel">Assignation de carte</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img src="assets/images/logo.png" alt="theme-logo" class="img-fluid rounded-circle mb-3" style="width: 200px; height: 200px;"/>
+        <!-- <img [src]="selectedApprenant?.photo" alt="Photo de l'apprenant" class="img-fluid rounded-circle mb-3" style="width: 100px; height: 100px;"> -->
+        <h4>{{ selectedEmploye?.prenom }} {{ selectedEmploye?.nom }}</h4>
+        <div class="mt-3">
+          <strong>Matricule:</strong> {{ selectedEmploye?.matricule }}
+        </div><br>
+        <div class="mt-2">
+          <!--<input type="text" class="form-control d-inline w-50-center"  placeholder="Lier la carte">-->
+          <!--<input type="text" id="cardIdInput" class="form-control" placeholder="Entrez le Card ID">-->
+          <input id="cardIdInput"    class="form-control" placeholder="Entrez le Card ID"  type="text" readonly />
+          <button class="btn btn-link">Lier la carte</button>
+          <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
+            {{ errorMessage }}
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-success"   (click)="confirmAssignCardId()" >Assigner</button>
+      </div>
+    </div>
+  </div>
+</div>

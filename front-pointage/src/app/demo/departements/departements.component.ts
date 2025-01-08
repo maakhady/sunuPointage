@@ -24,7 +24,11 @@ export class DepartementsComponent implements OnInit {
   currentDepartementId: string | null = null;
 
   filteredDepartements: Departement[] = [];
-    searchQuery: string = '';
+  searchQuery: string = '';
+
+  currentPage: number = 1;
+  itemsPerPage: number = 9;
+  totalPages: number = 0;
 
   constructor(private departementService: DepartementService, private router: Router) {
     this.departementForm = new FormGroup({
@@ -42,7 +46,7 @@ export class DepartementsComponent implements OnInit {
       next: (departements: Departement[]) => {
         this.departements = departements;
         this.filteredDepartements = departements; // Initialisation du tableau filtré
-        console.log(this.departements);
+        this.totalPages = Math.ceil(this.departements.length / this.itemsPerPage);
         this.loading = false;
       },
       error: (err) => {
@@ -52,7 +56,7 @@ export class DepartementsComponent implements OnInit {
     });
   }
 
-  private updateIdentifiant(nom: string): void {
+  updateIdentifiant(nom: string): void {
     const identifiant = nom.substring(0, 3).toUpperCase();
     this.departementForm.get('identifiant')?.setValue(identifiant, { emitEvent: false });
   }
@@ -94,12 +98,14 @@ export class DepartementsComponent implements OnInit {
         this.departementService.createDepartement(departementData).subscribe({
           next: (departement: Departement) => {
             this.departements.push(departement);
+            this.filteredDepartements = this.departements; // Mettre à jour la liste filtrée
+            this.totalPages = Math.ceil(this.departements.length / this.itemsPerPage);
             window.location.reload();
             this.resetForm();
             this.closeModal('exampleModal'); // Fermer le modal d'ajout
           },
           error: (err) => {
-            alert('Erreur lors de l\'ajout du département');
+            alert('Le departement existe deja');
           }
         });
       }
@@ -130,14 +136,14 @@ export class DepartementsComponent implements OnInit {
     this.router.navigate(['/departements', departementId, 'employes']);
   }
 
-
   onSearch(): void {
     console.log('Recherche en cours pour:', this.searchQuery);
     this.filteredDepartements = this.departements.filter(departement =>
-      departement.nom.toLowerCase().includes(this.searchQuery.toLowerCase()) 
+      departement.nom.toLowerCase().includes(this.searchQuery.toLowerCase())
     );
+    this.totalPages = Math.ceil(this.filteredDepartements.length / this.itemsPerPage);
+    this.currentPage = 1; // Réinitialiser la page actuelle lors de la recherche
   }
-
 
   getNombreEmploye(departement: Departement): number {
     return departement.utilisateurs?.length || 0;
@@ -151,37 +157,62 @@ export class DepartementsComponent implements OnInit {
     }
   }
 
+  departementToDelete: any = null;
+
   deleteDepartement(id: string): void {
     // Trouve le département concerné
     const departement = this.departements.find(d => d.id === id);
-  
+    
     if (!departement) {
       alert('Département non trouvé');
       return;
     }
-  
+    
     // Vérifie le nombre d'utilisateurs
     if (this.getNombreEmploye(departement) > 0) {
       alert('Impossible de supprimer un département qui contient des utilisateurs');
       return;
     }
-  
-    // Si le département est vide, procéder à la suppression
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce département ?')) {
-      this.departementService.deleteDepartement(id).subscribe({
+    
+    // Stocke le département à supprimer et ouvre le modal
+    this.departementToDelete = departement;
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmationModal'));
+    modal.show();
+  }
+
+  confirmDelete(): void {
+    if (this.departementToDelete) {
+      this.departementService.deleteDepartement(this.departementToDelete.id).subscribe({
         next: () => {
           // Recharge la liste des départements après suppression
-          this.departements = this.departements.filter(d => d.id !== id);
-          alert('Département supprimé avec succès');
+          this.departements = this.departements.filter(d => d.id !== this.departementToDelete.id);
+          this.filteredDepartements = this.departements; // Mettre à jour la liste filtrée
+          this.totalPages = Math.ceil(this.departements.length / this.itemsPerPage);
+          
+          // Ferme le modal
+          const modal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmationModal'));
+          modal?.hide();
+          
+         
+          this.departementToDelete = null;
         },
         error: (err) => {
           console.error('Erreur lors de la suppression:', err);
           alert('Erreur lors de la suppression du département');
+          this.departementToDelete = null;
         }
       });
     }
   }
-  
+  getPaginatedDepartements(): Departement[] {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    return this.filteredDepartements.slice(startIndex, endIndex);
+  }
 
-  
+  changePage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+    }
+  }
 }

@@ -8,9 +8,6 @@ import { Departement } from '../demo/departements/departement.model';
   providedIn: 'root'
 })
 export class DepartementService {
-  importEmployes(departementId: string, formData: FormData) {
-    throw new Error('Method not implemented.');
-  }
 
   private apiUrl = 'http://127.0.0.1:8000/api';  // URL de votre endpoint Laravel
 
@@ -62,9 +59,29 @@ deleteEmploye(id: string): Observable<any> {
   return this.http.delete<any>(`${this.apiUrl}/utilisateurs/${id}`);
 }
 
+
+// Dans departement.service.ts
+updateEmploye(id: string, formData: FormData): Observable<any> {
+  return this.http.put<{ message: string; data: any }>(`${this.apiUrl}/utilisateurs/modifierUser/${id}`, formData)
+    .pipe(
+      map(response => response.data)
+    );
+}
+
+
+
 getUserById(id: string): Observable<any> {
   return this.http.get<any>(`${this.apiUrl}/utilisateurs/${id}`);
 }
+
+importEmployes(departementId: string, formData: FormData) {
+  return this.http.post(`${this.apiUrl}/utilisateurs/import/departement/${departementId}`, formData);
+}
+
+
+ createEmploye(formData: FormData): Observable<any> {
+    return this.http.post(`${this.apiUrl}/utilisateurs/creerUser`, formData);
+  }
 
 
 
@@ -75,4 +92,33 @@ getUserById(id: string): Observable<any> {
         map(() => null) // Retourne null car aucune donnée n'est attendue
       );
   }
+
+
+
+   // méthode pour obtenir le nombre d'employés
+ 
+
+getEmployesCount(): Observable<number> {
+  return this.http.get<{ count: number }>(`${this.apiUrl}/count-employes`)
+    .pipe(
+      map(response => response.count)  // On extrait le nombre d'employés
+    );
+}
+
+
+
+
+toggleStatus(id: string): Observable<any> {
+  return this.http.put(`${this.apiUrl}/utilisateurs/${id}/toggle-status`, {});
+}
+
+
+assignCard(id: string, cardId: string): Observable<any> {
+  const url = `${this.apiUrl}/utilisateurs/${id}/assign-card`;
+  return this.http.post(url, { cardId });
+}
+
+
+
+  
 }

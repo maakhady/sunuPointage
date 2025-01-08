@@ -7,5 +7,6 @@ export interface Apprenant {
     cohorte: string;
     photo: File | null;
     matricule: string;
+    statut:string;
   }
   

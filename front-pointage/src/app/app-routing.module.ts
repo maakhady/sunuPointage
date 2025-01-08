@@ -18,7 +18,7 @@ const routes: Routes = [
         redirectTo: '/dashboard/default',
         pathMatch: 'full'
       },
-      
+
       {
         path: 'dashboard/default',
         loadComponent: () => import('./demo/default/dashboard/dashboard.component').then((c) => c.DefaultComponent),
@@ -46,17 +46,19 @@ const routes: Routes = [
       },
       {
         path: 'historique',
-        loadComponent: () => import('./demo/historique/historique.component').then((c) => c.HistoriqueComponent)
+        loadComponent: () => import('./demo/historique/historique.component').then((c) => c.HistoriqueComponent),
+        canActivate: [AuthGuard]
       },
       {
         path: 'pointage',
-        loadComponent: () => import('./demo/pointage/pointage.component').then((c) => c.PointageComponent)
+        loadComponent: () => import('./demo/pointage/pointage.component').then((c) => c.PointageComponent),
+        canActivate: [AuthGuard]
       },
       // {
       //   path: 'typography',
       //   loadComponent: () => import('./demo/ui-component/typography/typography.component')
       // },
-      
+
       {
         path: 'color',
         loadComponent: () => import('./demo/ui-component/ui-color/ui-color.component')
@@ -67,7 +69,7 @@ const routes: Routes = [
       }
     ]
 
-   
+
   },
 
   {
@@ -77,7 +79,7 @@ const routes: Routes = [
   {
     path: 'dashboard-vigile',
     loadComponent: () => import('./demo/dashboard-vigile/dashboard-vigile.component')
-      .then(m => m.DashboardVigileComponent), 
+      .then(m => m.DashboardVigileComponent),
       canActivate: [AuthGuard]
   },
 
@@ -85,7 +87,7 @@ const routes: Routes = [
     path: '',
     component: GuestComponent,
     children: [
-     
+
       {
         path: 'login',
         loadComponent: () => import('./demo/authentication/login/login.component').then(m => m.LoginComponent)

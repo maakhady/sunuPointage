@@ -19,10 +19,36 @@ interface Employe {
   adresse: string;
   fonction: string;
   departement_id: string;
+  cohorte_id: string;
   photo: string | null;
   status: string;
+  type: string;
   selected?: boolean;
+  departement: {
+    id: string;
+    nom: string;
+  }| null;
+  cohorte: {
+    id: string;
+    nom: string;
+    annee_scolaire: string;
+    promo: number;
+   
+  } ;
+  pointages: {
+    _id: string;
+    user_id: string;
+    date: string;
+    premierPointage_temp: string;
+    estRetard_temp: boolean;
+    estPresent: boolean;
+    estEnAttente: boolean;
+    updated_at: string;
+    created_at: string;
+  }[];
 }
+
+
 
 @Component({
   selector: 'app-sample-page',
@@ -34,6 +60,7 @@ interface Employe {
 export default class SamplePageComponent implements OnInit {
   employe: Employe | null = null;
   loading: boolean = true;
+pointage: any;
 
   constructor(
     private route: ActivatedRoute,
@@ -52,6 +79,7 @@ export default class SamplePageComponent implements OnInit {
     this.departementService.getUserById(id).subscribe({
       next: (response: ApiResponse) => {
         this.employe = response.data;
+        console.log(response);
         this.loading = false;
       },
       error: (err) => {

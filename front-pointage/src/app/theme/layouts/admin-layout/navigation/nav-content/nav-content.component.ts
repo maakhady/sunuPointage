@@ -18,11 +18,14 @@ import {
   CreditCardOutline,
   LoginOutline,
   QuestionOutline,
-  ChromeOutline,
+  SolutionOutline,
   FontSizeOutline,
   ProfileOutline,
   BgColorsOutline,
-  AntDesignOutline
+  AntDesignOutline,
+  HomeOutline,
+  IdcardOutline
+
 } from '@ant-design/icons-angular/icons';
 
 @Component({
@@ -60,8 +63,10 @@ export class NavContentComponent implements OnInit {
         ProfileOutline,
         BgColorsOutline,
         AntDesignOutline,
-        ChromeOutline,
-        QuestionOutline
+        SolutionOutline ,
+        QuestionOutline,
+        HomeOutline,
+        IdcardOutline
       ]
     );
     this.navigations = NavigationItems;

@@ -31,7 +31,7 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         classes: 'nav-item',
         url: '/dashboard/default',
-        icon: 'dashboard',
+        icon: 'home',
         breadcrumbs: false
       },
       {
@@ -40,7 +40,7 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         classes: 'nav-item',
         url: '/cohortes',
-        icon: 'dashboard',
+        icon: 'user',
         breadcrumbs: false
       },
       {
@@ -49,7 +49,7 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         classes: 'nav-item',
         url: '/departements',
-        icon: 'dashboard',
+        icon: 'solution',
         breadcrumbs: false
       },
       {
@@ -58,7 +58,7 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         classes: 'nav-item',
         url: '/pointage',
-        icon: 'dashboard',
+        icon: 'idcard',
         breadcrumbs: false
       },
       {
@@ -67,7 +67,7 @@ export const NavigationItems: NavigationItem[] = [
         type: 'item',
         classes: 'nav-item',
         url: '/historique',
-        icon: 'dashboard',
+        icon: 'profile',
         breadcrumbs: false
       }
     ]

@@ -37,7 +37,7 @@ export class DefaultComponent implements OnInit {
   AnalyticEcommerce = [
     {
       title: 'Total Employers',
-      amount: '60'
+      amount: '0'
     },
     {
       title: 'Total Cohortes',
@@ -45,7 +45,7 @@ export class DefaultComponent implements OnInit {
     },
     {
       title: 'Total Absence',
-      amount: '50',
+      amount: '0',
      
     },
     {
@@ -59,10 +59,12 @@ export class DefaultComponent implements OnInit {
      
     }, {
       title: 'Total Presence',
-      amount: '310',
+      amount: '0',
       
     }
   ];
+  employesCount: number;
+  apprenantsCount: number;
 
   
 
@@ -94,6 +96,32 @@ export class DefaultComponent implements OnInit {
         console.error('Erreur lors de la récupération des départements :', err);
       }
     });
+
+
+   
+    this.departementService.getEmployesCount().subscribe({
+      next: (count) => {
+        this.employesCount = count;
+        this.AnalyticEcommerce[0].amount = `${this.employesCount}`;  // Update "Total Employers" field
+      },
+      error: (err) => {
+        console.error('Erreur lors de la récupération du nombre d\'employés:', err);
+      }
+    });
+
+
+
+
+    this.apiService.getApprenantsCount().subscribe({
+      next: (count) => {
+        this.apprenantsCount = count;
+        this.AnalyticEcommerce[3].amount = `${this.apprenantsCount}`;  // Update "Total Employers" field
+      },
+      error: (err) => {
+        console.error('Erreur lors de la récupération du nombre de apprenant:', err);
+      }
+    });
+    
 
    
   }
