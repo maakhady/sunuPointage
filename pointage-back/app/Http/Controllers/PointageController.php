@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 
+
+
 class PointageController extends Controller
 {
     /**
@@ -151,57 +153,6 @@ class PointageController extends Controller
         ]);
      }
 
-    /**
-     * Génère les pointages "absent" par défaut pour tous les utilisateurs
-     * Utilisé chaque matin pour initialiser les pointages
-     * @return JsonResponse
-     */
-    // public function genererAbsences()
-    // {
-    //     try {
-    //         $today = Carbon::today();
-    //          // Récupération utilisateurs actifs non en congé
-    //         $utilisateurs = Utilisateur::where('statut', 'actif')
-    //             ->whereNotIn('_id', function($query) {
-    //                 $query->select('user_id')
-    //                       ->from('conges')
-    //                       ->whereDate('date_debut', '<=', now())
-    //                       ->whereDate('date_fin', '>=', now());
-    //             })
-    //             ->get();
-    //              // Préparation des données pour insertion massive
-    //         $absences = $utilisateurs->map(function($utilisateur) use ($today) {
-    //             return [
-    //                 'user_id' => $utilisateur->_id,
-    //                 'date' => $today,
-    //                 'estPresent' => false,
-    //                 'estRetard' => false,
-    //                 'premierPointage' => null,
-    //                 'dernierPointage' => null,
-    //                 'created_at' => now(),
-    //                 'updated_at' => now()
-    //             ];
-    //         })->toArray();
-    //     // Insertion massive dans MongoDB
-    //         Pointage::raw()->insertMany($absences);
-
-    //         $this->createLog('generation_absences', [
-    //             'date' => $today->format('Y-m-d'),
-    //             'nombre_utilisateurs' => count($absences)
-    //         ]);
-
-    //         return response()->json([
-    //             'status' => true,
-    //             'message' => 'Pointages par défaut générés pour ' . count($absences) . ' utilisateurs'
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         $this->createLog('generation_absences', [
-    //             'error' => $e->getMessage()
-    //         ], 'error');
-
-    //         throw $e;
-    //     }
-    // }
 
 
     /**
@@ -322,6 +273,7 @@ class PointageController extends Controller
      * @return JsonResponse
      */
 
+
      public function index(Request $request)
      {
          $query = Pointage::query();
@@ -337,7 +289,7 @@ class PointageController extends Controller
          }
 
          // Récupération des résultats sans pagination
-         $pointages = $query->with(['utilisateur', 'vigile'])->get();
+         $pointages = $query->with(['utilisateurf', 'vigile'])->get();
 
          $this->createLog('consultation_pointages', [
              'filtres' => [
@@ -351,8 +303,8 @@ class PointageController extends Controller
              'status' => true,
              'data' => $pointages
          ]);
-     }
 
+        }
         /**
      * Récupérer l'historique des pointages avec filtres
      * @param Request $request
@@ -681,4 +633,56 @@ public function getUtilisateursPointes(Request $request)
        ], 500);
    }
 }
+
+
+
+/**
+     * Enregistre les absences pour la journée
+     */
+    public function enregistrerAbsences(Request $request)
+    {
+        try {
+            $date = $request->input('date', Carbon::today()->format('Y-m-d'));
+
+            $resultats = Pointage::enregistrerAbsences($date);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Traitement des absences terminé',
+                'data' => $resultats
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Erreur lors de l\'enregistrement des absences',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Vérifie l'absence d'un utilisateur
+     */
+    public function verifierAbsence(Request $request)
+    {
+        try {
+            $userId = $request->input('user_id');
+            $date = $request->input('date', Carbon::today()->format('Y-m-d'));
+
+            $estAbsent = Pointage::etaitAbsent($userId, $date);
+
+            return response()->json([
+                'status' => true,
+                'estAbsent' => $estAbsent
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Erreur lors de la vérification de l\'absence',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

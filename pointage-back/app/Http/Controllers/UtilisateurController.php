@@ -159,49 +159,87 @@ class UtilisateurController extends Controller
      * @param string $id Identifiant de l'utilisateur
      * @return \Illuminate\Http\JsonResponse Utilisateur mis à jour
      */
+    // public function update(UpdateUtilisateurRequest $request, $id)
+    // {
+    //     try {
+    //         $utilisateur = Utilisateur::findOrFail($id);
+    //         $data = $request->validated();
+
+    //         if (isset($data['photo']) && $data['photo']) {
+    //             if ($utilisateur->photo) {
+    //                 Storage::delete($utilisateur->photo);
+    //             }
+    //             $data['photo'] = $this->uploadPhoto($data['photo']);
+    //         }
+
+    //         if (isset($data['password'])) {
+    //             $data['password'] = Hash::make($data['password']);
+    //             // unset($data['password']);
+    //         }
+
+    //         $utilisateur->update($data);
+
+    //         // Log de mise à jour
+    //         Journal::create([
+    //             'user_id' => Auth::id(),
+    //             'action' => 'modification_utilisateur',
+    //             'details' => [
+    //                 'utilisateur_id' => $utilisateur->id,
+    //                 'modifications' => $data,
+    //                 'timestamp' => now()
+    //             ]
+    //         ]);
+
+    //         return response()->json([
+    //             'status' => true,
+    //             'message' => 'Utilisateur mis à jour avec succès',
+    //             'data' => $utilisateur->fresh()
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => $e->getMessage()
+    //         ], $e->getCode() ?: 500);
+    //     }
+    // }
+
     public function update(UpdateUtilisateurRequest $request, $id)
-    {
-        try {
-            $utilisateur = Utilisateur::findOrFail($id);
-            $data = $request->validated();
+{
+    try {
+        $utilisateur = Utilisateur::findOrFail($id);
+        $data = $request->validated();
 
-            if (isset($data['photo']) && $data['photo']) {
-                if ($utilisateur->photo) {
-                    Storage::delete($utilisateur->photo);
-                }
-                $data['photo'] = $this->uploadPhoto($data['photo']);
+        if (isset($data['photo']) && $data['photo']) {
+            if ($utilisateur->photo) {
+                Storage::delete($utilisateur->photo);
             }
-
-            if (isset($data['password'])) {
-                $data['password'] = Hash::make($data['password']);
-                unset($data['password']);
-            }
-
-            $utilisateur->update($data);
-
-            // Log de mise à jour
-            Journal::create([
-                'user_id' => Auth::id(),
-                'action' => 'modification_utilisateur',
-                'details' => [
-                    'utilisateur_id' => $utilisateur->id,
-                    'modifications' => $data,
-                    'timestamp' => now()
-                ]
-            ]);
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Utilisateur mis à jour avec succès',
-                'data' => $utilisateur->fresh()
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            $data['photo'] = $this->uploadPhoto($data['photo']);
         }
+
+        $utilisateur->update($data);
+
+        Journal::create([
+            'user_id' => Auth::id(),
+            'action' => 'modification_utilisateur',
+            'details' => [
+                'utilisateur_id' => $utilisateur->id,
+                'modifications' => $data,
+                'timestamp' => now()
+            ]
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Utilisateur mis à jour avec succès',
+            'data' => $utilisateur->fresh()
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => false,
+            'message' => $e->getMessage()
+        ], $e->getCode() ?: 500);
     }
+}
 
     /**
      * Supprime un utilisateur
@@ -252,24 +290,24 @@ class UtilisateurController extends Controller
         try {
             $importedUsers = [];
             $errors = [];
-    
+
             $csvData = array_map('str_getcsv', file($request->file('file')->getPathname()));
             $headers = array_shift($csvData);
-    
+
             // Validation de l'en-tête (Important)
             $expectedHeaders = [ // Ajustez selon vos besoins
-                'nom', 'prenom', 'email', 'telephone', 'photo', 'cardId',
-                'matricule',  'adresse', 'role'
+                'nom', 'prenom', 'email', 'telephone', 'photo',
+                'matricule',  'adresse',
             ];
-    
+
             if (array_diff($expectedHeaders, $headers) || array_diff($headers, $expectedHeaders)) {
                 return response()->json(['status' => false, 'message' => 'En-tête CSV invalide. Les colonnes attendues sont : ' . implode(', ', $expectedHeaders)], 400);
             }
-    
+
             foreach ($csvData as $key => $row) {
                 try {
                     $userData = array_combine($headers, $row);
-    
+
                     // Validation des données (Crucial)
                     $validator = Validator::make($userData, [
                         'nom' => 'required|string|max:255',
@@ -277,29 +315,27 @@ class UtilisateurController extends Controller
                         'email' => 'required|email|unique:utilisateurs,email',
                         'telephone' => 'nullable|string|max:20',
                         'photo' => 'nullable|string|max:255',
-                        'cardId' => 'nullable|string|max:255',
                         'matricule' => 'nullable|string|max:255',
                         'type' => 'nullable|string|max:255',
                         'adresse' => 'nullable|string|max:255',
-                        'role' => 'nullable|string|max:255',
 
-                        
+
                     ]);
-    
-    
+
+
                     if ($validator->fails()) {
                         $errors[] = "Ligne " . ($key + 2) . ": " . $validator->errors()->first();
                         continue; // Passe à la ligne suivante
                     }
                     $userData['password'] = Hash::make($userData['password'] ?? 'password123');
-                    
+
                     if($cohorte){
                         $userData['cohorte_id'] = $cohorte;
                         $userData['type'] = 'apprenant';
                     }
                     $user = Utilisateur::create($userData);
                     $importedUsers[] = $user;
-    
+
                     Journal::create([
                         'user_id' => Auth::id(),
                         'action' => 'import_utilisateur',
@@ -314,7 +350,7 @@ class UtilisateurController extends Controller
                     $errors[] = "Ligne " . ($key + 2) . ": " . $e->getMessage();
                 }
             }
-    
+
             return response()->json([
                 'status' => true,
                 'message' => 'Importation réussie',
@@ -342,8 +378,8 @@ class UtilisateurController extends Controller
 
         // Validation de l'en-tête (Important)
         $expectedHeaders = [ // Ajustez selon vos besoins
-            'nom', 'prenom', 'email', 'password', 'telephone', 'photo', 'cardId',
-            'matricule',   'role', 'adresse', 'fonction', 
+            'nom', 'prenom', 'email', 'password', 'telephone', 'photo',
+            'matricule',  'adresse', 'fonction',
         ];
 
         if (array_diff($expectedHeaders, $headers) || array_diff($headers, $expectedHeaders)) {
@@ -362,14 +398,12 @@ class UtilisateurController extends Controller
                     'password' => 'nullable|string|min:8',
                     'telephone' => 'nullable|string|max:20',
                     'photo' => 'nullable|string|max:255',
-                    'cardId' => 'nullable|string|max:255',
                     'matricule' => 'nullable|string|max:255',
                     'type' => 'nullable|string|max:255',
                     'statut' => 'nullable|string|max:255',
-                    'role' => 'nullable|string|max:255',
                     'adresse' => 'nullable|string|max:255',
                     'fonction' => 'nullable|string|max:255',
-                    
+
                 ]);
 
 
@@ -382,7 +416,7 @@ class UtilisateurController extends Controller
                     $userData['departement_id'] = $departement;
                     $userData['type'] = 'employe';
                 }
-            
+
                 $user = Utilisateur::create($userData);
                 $importedUsers[] = $user;
 
@@ -477,7 +511,7 @@ class UtilisateurController extends Controller
 
             // Vérification de l'existence de la carte
             $utilisateur = Utilisateur::where('cardId', $request->cardId)->first();
-            
+
             if (!$utilisateur) {
                 throw new \Exception('Carte non reconnue dans le système', 403);
             }
@@ -495,7 +529,7 @@ class UtilisateurController extends Controller
                         'raison' => 'carte_inactive'
                     ]
                 ]);
-                
+
                 throw new \Exception('Accès refusé : Carte désactivée', 403);
             }
 
@@ -649,7 +683,7 @@ class UtilisateurController extends Controller
             ], $e->getCode() ?: 500);
         }
     }
-    /** 
+    /**
      * Supprime plusieurs utilisateurs en même temps
      * @param Request $request Requête contenant les IDs des utilisateurs à supprimer
      * @return \Illuminate\Http\JsonResponse Message de confirmation
@@ -664,7 +698,7 @@ class UtilisateurController extends Controller
 
             // Récupérer les infos des utilisateurs avant suppression pour le log
             $utilisateurs = Utilisateur::whereIn('_id', $request->ids)->get();
-            
+
             // Supprimer les photos si elles existent
             foreach($utilisateurs as $utilisateur) {
                 if ($utilisateur->photo) {
@@ -712,12 +746,12 @@ class UtilisateurController extends Controller
 
             $utilisateurs = Utilisateur::whereIn('_id', $request->ids)->get();
             $statusChanges = [];
-            
+
             foreach($utilisateurs as $utilisateur) {
                 $oldStatus = $utilisateur->statut;
                 $utilisateur->statut = $utilisateur->statut === 'actif' ? 'inactif' : 'actif';
                 $utilisateur->save();
-                
+
                 $statusChanges[] = [
                     'utilisateur_id' => $utilisateur->id,
                     'ancien_statut' => $oldStatus,
@@ -763,7 +797,7 @@ class UtilisateurController extends Controller
 
 
     /**
-     * Active/Désactive un utilisateur 
+     * Active/Désactive un utilisateur
      * @param Request $request Requête contenant les IDs des utilisateurs
      * @return \Illuminate\Http\JsonResponse Message de confirmation
      */
@@ -771,14 +805,14 @@ class UtilisateurController extends Controller
     {
         try {
             $utilisateur = Utilisateur::findOrFail($id);
-            
+
             // Sauvegarde l'ancien statut
             $oldStatus = $utilisateur->statut;
-            
+
             // Bascule le statut
             $utilisateur->statut = ($utilisateur->statut === 'actif') ? 'inactif' : 'actif';
             $utilisateur->save();
-            
+
             // Journalisation
             Journal::create([
                 'user_id' => Auth::id(),
@@ -796,7 +830,7 @@ class UtilisateurController extends Controller
                 'message' => 'Statut modifié avec succès',
                 'data' => $utilisateur
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -804,4 +838,27 @@ class UtilisateurController extends Controller
             ], $e->getCode() ?: 500);
         }
     }
+
+    public function countEmployes()
+    {
+        // Compter les utilisateurs dont le type est 'employe'
+        $count = Utilisateur::where('type', 'employe')->count();
+
+        return response()->json([
+            'count' => $count
+        ]);
+    }
+
+
+
+    public function countApprenants()
+    {
+        // Compter les utilisateurs dont le type est 'employe'
+        $count = Utilisateur::where('type', 'apprenant')->count();
+
+        return response()->json([
+            'count' => $count
+        ]);
+    }
+
 }

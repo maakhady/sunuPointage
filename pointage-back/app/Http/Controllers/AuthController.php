@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
-class AuthController extends Controller 
+class AuthController extends Controller
 {
     public function __construct()
     {
@@ -18,13 +18,13 @@ class AuthController extends Controller
             $request->headers->set('Accept', 'application/json');
             return $next($request);
         });
-        $this->middleware('auth:api', ['except' => ['login','cardLogin']]);
+        $this->middleware('auth:api', ['except' => ['login','cardLogin','creerUser', 'modifierUser']]);
     }
 
     public function login(LoginRequest $request)
     {
         $user = Utilisateur::where('email', $request->email)->first();
-        
+
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'status' => false,
@@ -137,9 +137,9 @@ class AuthController extends Controller
                 'cohorte_id' => $request->cohorte_id,
                 'photo' => $request->photo,
                 'statut' => 'actif',
-                'role' => $request->role ?? 'utilisateur_simple',
+                // 'role' => $request->role ?? 'utilisateur_simple',
             ];
-    
+
             // Ajouter password uniquement pour vigile et DG
             if (in_array($request->fonction, ['vigile', 'DG'])) {
                 if (!$request->password) {
@@ -150,9 +150,9 @@ class AuthController extends Controller
                 }
                 $userData['password'] = Hash::make($request->password);
             }
-    
+
             $newUser = Utilisateur::create($userData);
-            
+
             Journal::create([
                 'user_id' => $newUser->_id,
                 'action' => 'creation_compte',
@@ -162,13 +162,13 @@ class AuthController extends Controller
                     'created_by' => 'self_registration'
                 ]
             ]);
-    
+
             return response()->json([
                 'status' => true,
                 'message' => 'Utilisateur créé avec succès',
                 'data' => $newUser
             ], 201);
-    
+
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -185,22 +185,22 @@ class AuthController extends Controller
     {
        try {
            $user = JWTAuth::parseToken()->authenticate();
-           
+
            if (!$user) {
                return response()->json([
                    'status' => false,
                    'message' => 'Utilisateur non trouvé'
                ], 404);
            }
-    
+
            return response()->json([
                'status' => true,
                'data' => $user
            ], 200);
-           
+
        } catch (\Exception $e) {
            return response()->json([
-               'status' => false, 
+               'status' => false,
                'message' => 'Erreur lors de la récupération du profil'
            ], 500);
        }
@@ -286,7 +286,7 @@ class AuthController extends Controller
     ]);
 
     return response()->json([
-        'status' => true, 
+        'status' => true,
         'message' => 'Connexion réussie',
         'data' => $user,
         'access_token' => $token,

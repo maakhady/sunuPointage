@@ -31,9 +31,9 @@ class UpdateUtilisateurRequest extends FormRequest
             'department_id' => 'sometimes|exists:departments,id',
             'cohorte_id' => 'sometimes|exists:cohortes,id',
             'statut' => 'sometimes|in:actif,inactif',
-            'role' => 'sometimes|in:administrateur,utilisateur_simple',
+            // 'role' => 'sometimes|in:administrateur,utilisateur_simple',
             'type' => 'sometimes|in:employe,aprenant'
-            
+
         ];
     }
 }

@@ -7,12 +7,12 @@ use Tymon\JWTAuth\Contracts\JWTSubject;
 use MongoDB\Laravel\Auth\User as Authenticatable;
 
 
-class Utilisateur extends Authenticatable implements JWTSubject 
+class Utilisateur extends Authenticatable implements JWTSubject
 
 
 // class Utilisateur extends Model  implements  JWTSubject  // Change Model par Authenticatable
 {
-   
+
 
     // Définir la collection MongoDB associée au modèle
     protected $connection = 'mongodb';
@@ -54,7 +54,7 @@ class Utilisateur extends Authenticatable implements JWTSubject
 
         'reset_token_expiry' => 'datetime',
 
-        
+
     ];
 
     // Methode pour récupérer le mot de passe pour l'authentification
@@ -89,7 +89,7 @@ class Utilisateur extends Authenticatable implements JWTSubject
     // Relation avec les pointages
     public function pointages()
     {
-        return $this->hasMany(Pointage::class, 'user_id');
+        return $this->hasMany(Pointage::class, 'user_id','_id');
     }
 
     public function pointagesValides()
@@ -103,7 +103,7 @@ class Utilisateur extends Authenticatable implements JWTSubject
         return $this->hasMany(Journal::class, 'user_id');
     }
 
-    
+
 
     // Relation avec les congés
     public function conges()

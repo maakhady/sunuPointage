@@ -14,7 +14,7 @@ class UpdateCohorteRequest extends FormRequest
     public function rules()
     {
         return [
-            'nom' => 'required|string|max:255',
+            'nom' => 'required|string|max:255|unique:cohorte,nom',
             'promo' => 'required|integer|max:255',
             'annee_scolaire' => 'nullable'
         ];

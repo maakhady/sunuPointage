@@ -14,14 +14,14 @@ class CohorteController extends Controller
 {
    /**
     * Récupère la liste de toutes les cohortes
-    * 
+    *
     * @return \Illuminate\Http\JsonResponse Liste des cohortes
     */
     public function index()
     {
         try {
             $cohortes = Cohorte::with('apprenants')->get();
-            
+
             Journal::create([
                 'user_id' => Auth::id(),
                 'action' => 'consultation_liste_cohortes',
@@ -30,7 +30,7 @@ class CohorteController extends Controller
                     'timestamp' => now()
                 ]
             ]);
- 
+
             return response()->json([
                 'status' => true,
                 'data' => $cohortes
@@ -45,15 +45,22 @@ class CohorteController extends Controller
 
    /**
     * Crée une nouvelle cohorte
-    * 
+    *
     * @param CreateCohorteRequest $request Requête validée de création
     * @return \Illuminate\Http\JsonResponse Cohorte créée
     */
     public function store(CreateCohorteRequest $request)
     {
         try {
+
+            if (Cohorte::where('nom', $request->nom)->exists()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Cette cohorte existe déjà'
+                ], 422);
+            }
             $cohorte = Cohorte::create($request->validated());
- 
+
             Journal::create([
                 'user_id' => Auth::id(),
                 'action' => 'creation_cohorte',
@@ -63,7 +70,7 @@ class CohorteController extends Controller
                     'timestamp' => now()
                 ]
             ]);
- 
+
             return response()->json([
                 'status' => true,
                 'message' => 'Cohorte créée avec succès',
@@ -79,7 +86,7 @@ class CohorteController extends Controller
 
    /**
     * Récupère les détails d'une cohorte spécifique
-    * 
+    *
     * @param string $id Identifiant de la cohorte
     * @return \Illuminate\Http\JsonResponse Détails de la cohorte
     */
@@ -90,7 +97,7 @@ class CohorteController extends Controller
             if (!$cohorte) {
                 throw new \Exception('Cohorte non trouvée', 404);
             }
- 
+
             Journal::create([
                 'user_id' => Auth::id(),
                 'action' => 'consultation_cohorte',
@@ -99,7 +106,7 @@ class CohorteController extends Controller
                     'timestamp' => now()
                 ]
             ]);
- 
+
             return response()->json([
                 'status' => true,
                 'data' => $cohorte
@@ -114,7 +121,7 @@ class CohorteController extends Controller
 
    /**
     * Met à jour une cohorte existante
-    * 
+    *
     * @param UpdateCohorteRequest $request Requête validée de mise à jour
     * @param string $id Identifiant de la cohorte
     * @return \Illuminate\Http\JsonResponse Cohorte mise à jour
@@ -126,10 +133,10 @@ class CohorteController extends Controller
             if (!$cohorte) {
                 throw new \Exception('Cohorte non trouvée', 404);
             }
- 
+
             $oldData = $cohorte->toArray();
             $cohorte->update($request->validated());
- 
+
             Journal::create([
                 'user_id' => Auth::id(),
                 'action' => 'modification_cohorte',
@@ -140,7 +147,7 @@ class CohorteController extends Controller
                     'timestamp' => now()
                 ]
             ]);
- 
+
             return response()->json([
                 'status' => true,
                 'message' => 'Cohorte mise à jour avec succès',
@@ -156,7 +163,7 @@ class CohorteController extends Controller
 
    /**
     * Supprime une cohorte
-    * 
+    *
     * @param string $id Identifiant de la cohorte
     * @return \Illuminate\Http\JsonResponse Message de confirmation
     */
@@ -170,10 +177,10 @@ class CohorteController extends Controller
             if ($cohorte->apprenants()->count() > 0) {
                 throw new \Exception('Impossible de supprimer une cohorte qui contient des apprenants', 400);
             }
- 
+
             $cohorteData = $cohorte->toArray();
             $cohorte->delete();
- 
+
             Journal::create([
                 'user_id' => Auth::id(),
                 'action' => 'suppression_cohorte',
@@ -183,7 +190,7 @@ class CohorteController extends Controller
                     'timestamp' => now()
                 ]
             ]);
- 
+
             return response()->json([
                 'status' => true,
                 'message' => 'Cohorte supprimée avec succès'
@@ -199,7 +206,7 @@ class CohorteController extends Controller
 
     /**
     * Recupere les apprenants d'une cohorte
-    * 
+    *
     * @param string $id Identifiant de la cohorte
     * @return \Illuminate\Http\JsonResponse Message de confirmation
     */

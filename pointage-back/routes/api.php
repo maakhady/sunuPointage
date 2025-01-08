@@ -78,6 +78,8 @@ Route::get('/utilisateurs/verify-card', [UtilisateurController::class, 'verifyCa
     Route::post('/utilisateurs/bulk-destroy', [UtilisateurController::class, 'bulkDestroy']);
     Route::post('/utilisateurs/bulk-toggle-status', [UtilisateurController::class, 'bulkToggleStatus']);
     Route::put('/utilisateurs/{id}/toggle-status', [UtilisateurController::class, 'toggleStatus']);
+    Route::get('/count-employes', [UtilisateurController::class, 'countEmployes']);
+    Route::get('/count-apprenants', [UtilisateurController::class, 'countApprenants']);
 
 // });
 
@@ -146,6 +148,9 @@ Route::prefix('pointages')->group(function () {
 
 Route::get('/pointages/jour', [PointageController::class, 'getPointagesJour']);
 Route::get('pointages/utilisateurs', [PointageController::class, 'getUtilisateursPointes']);
+
+Route::post('/absences/enregistrer', [PointageController::class, 'enregistrerAbsences']);
+Route::get('/absences/verifier', [PointageController::class, 'verifierAbsence']);
 
 
 

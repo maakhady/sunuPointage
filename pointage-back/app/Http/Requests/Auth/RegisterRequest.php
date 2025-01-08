@@ -44,7 +44,7 @@ class RegisterRequest extends FormRequest
             'adresse' => 'nullable',
             'photo' => 'nullable|image|max:2048',
             'cardId' => 'nullable|string|unique:utilisateurs,cardId',
-            'role' => 'required|in:administrateur,utilisateur_simple',
+            // 'role' => 'required|in:administrateur,utilisateur_simple',
             'cohorte_id' => 'required_without:departement_id|exists:mongodb.cohortes,_id',
             'departement_id' => 'required_without:cohorte_id|exists:mongodb.departements,_id'
         ];
@@ -69,10 +69,9 @@ class RegisterRequest extends FormRequest
             'fonction.required_if' => 'La fonction est requise pour un employé',
             'department_id.required_if' => 'Le département est requis pour un employé',
             'cohorte_id.required_if' => 'La cohorte est requise pour un apprenant',
-            'role.required' => 'Le rôle est requis',
-            'role.in' => 'Le rôle doit être soit administrateur soit utilisateur_simple'
+            
         ];
     }
 
-    
+
 }

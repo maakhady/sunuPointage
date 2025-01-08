@@ -24,6 +24,8 @@ class CreateCohorteRequest extends FormRequest
     {
         return [
             'nom.required' => 'Le nom de la cohorte est requis',
+            'nom.unique' => 'Le nom de la cohorte doit etre unique',
+
             'annee_scolaire.required' => 'L\'année scolaire est requise',
             'promo.required' => 'La promotion est requise'
 
