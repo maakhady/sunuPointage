@@ -169,17 +169,17 @@ export class CohortesComponent implements OnInit {
 
   deleteCohorte(id: string): void {
     const cohorte = this.cohortes.find(c => c.id === id);
-    
+
     if (!cohorte) {
       alert('Cohorte non trouvée');
       return;
     }
-    
+
     if (this.getNombreApprenants(cohorte) > 0) {
       alert('Impossible de supprimer une cohorte qui contient des apprenants');
       return;
     }
-    
+
     // Stocke la cohorte à supprimer et ouvre le modal
     this.cohorteToDelete = cohorte;
     const modal = new bootstrap.Modal(document.getElementById('deleteCohorteModal'));
@@ -193,7 +193,7 @@ export class CohortesComponent implements OnInit {
           // Ferme le modal
           const modal = bootstrap.Modal.getInstance(document.getElementById('deleteCohorteModal'));
           modal?.hide();
-          
+
           this.loadCohortes();
           this.cohorteToDelete = null;
         },

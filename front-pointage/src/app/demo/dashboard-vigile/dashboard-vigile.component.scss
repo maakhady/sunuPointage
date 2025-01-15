@@ -220,10 +220,7 @@ $absent-color: #fd3c3c;
     margin-left: 0;
   }
 
-  .search-wrapper .search-input {
-    max-width: 100%;
-  }
-}
+
 
 // Animations pour la modal
 .modal {
@@ -255,4 +252,5 @@ $absent-color: #fd3c3c;
 
 .modal-content {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
 }

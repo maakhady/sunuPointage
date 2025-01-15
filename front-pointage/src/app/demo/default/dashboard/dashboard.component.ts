@@ -12,9 +12,11 @@ import { SharedModule } from 'src/app/theme/shared/shared.module';
 import { MonthlyBarChartComponent } from './monthly-bar-chart/monthly-bar-chart.component';
 import { IncomeOverviewChartComponent } from './income-overview-chart/income-overview-chart.component';
 
+
 // Icons
 import { IconService } from '@ant-design/icons-angular';
 import { FallOutline, GiftOutline, MessageOutline, RiseOutline, SettingOutline } from '@ant-design/icons-angular/icons';
+import { Pointage } from 'src/app/services/getpointage.service';
 
 @Component({
   selector: 'app-default',
@@ -32,6 +34,10 @@ export class DefaultComponent implements OnInit {
   cohortesCount: number = 0;
   departementsCount: number = 0;
 
+
+  countPresent: number = 0;
+  countAbsent: number = 0;
+
   recentOrder = tableData;
 
   AnalyticEcommerce = [
@@ -46,31 +52,43 @@ export class DefaultComponent implements OnInit {
     {
       title: 'Total Absence',
       amount: '0',
-     
+
     },
     {
       title: 'Total Etudiants',
       amount: '300',
-     
+
     },
     {
       title: 'Total Departements',
       amount: '0',
-     
+
     }, {
       title: 'Total Presence',
       amount: '0',
-      
+
     }
   ];
   employesCount: number;
   apprenantsCount: number;
+   filteredPointages: Pointage[] = [];
 
-  
+
 
   // Constructor with service injection
   constructor(private iconService: IconService, private apiService: ApiService,private departementService: DepartementService) {
     this.iconService.addIcon(...[RiseOutline, FallOutline, SettingOutline, GiftOutline, MessageOutline]);
+  }
+
+
+  updateStatistics(): void {
+    this.countPresent = this.filteredPointages.filter(p => p.estPresent && !p.estRetard).length;
+    this.AnalyticEcommerce[5].amount = `${this.countPresent}`;
+
+
+    this.countAbsent = this.filteredPointages.filter(p => !p.estPresent && !p.estRetard).length;
+    this.AnalyticEcommerce[2].amount = `${this.countAbsent}`;
+
   }
 
   ngOnInit(): void {
@@ -98,7 +116,7 @@ export class DefaultComponent implements OnInit {
     });
 
 
-   
+
     this.departementService.getEmployesCount().subscribe({
       next: (count) => {
         this.employesCount = count;
@@ -121,8 +139,9 @@ export class DefaultComponent implements OnInit {
         console.error('Erreur lors de la récupération du nombre de apprenant:', err);
       }
     });
-    
 
-   
+
+
+
   }
 }

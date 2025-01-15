@@ -32,3 +32,22 @@
   .h2{
     color: #2196F3;
   }
+
+  thead th {
+    color: #2196F3;
+    font-size: 15px;
+}
+
+.btn-primary {
+  background-color: #2196F3;
+  border: none;
+  font-size: 14px;
+  &:hover {
+    background-color: #0b5ed7;
+  }
+}
+
+.search-wrapper .search-input {
+  max-width: 100%;
+}
+

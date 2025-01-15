@@ -1,14 +1,12 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DepartementService } from '../../services/departement.service';
+import { AssignationService } from '../../services/assignation.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule, FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Subscription } from 'rxjs';
 import * as bootstrap from 'bootstrap';
 import { HttpErrorResponse } from '@angular/common/http';
-
-
-
 
 interface Employe {
   id: string;
@@ -33,7 +31,7 @@ interface Employe {
   templateUrl: './liste-employes.component.html',
   styleUrls: ['./liste-employes.component.scss']
 })
-export class ListeEmployesComponent implements OnInit {
+export class ListeEmployesComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput!: ElementRef;
   employes: Employe[] = [];
   filteredEmployes: Employe[] = [];
@@ -41,42 +39,33 @@ export class ListeEmployesComponent implements OnInit {
   allSelected: boolean = false;
   isImporting: boolean = false;
   searchQuery: string = '';
-
-  // Pagination
   currentPage: number = 1;
   itemsPerPage: number = 5;
-
-
-
-
-
   employeForm: FormGroup;
   showPasswordField: boolean = false;
   selectedPhoto: File | null = null;
   selectedEmploye: Employe | null = null;
 
-
-
-
-
-
-
-  // Properties for CSV import
+  // Assignation related
+  private subscriptions: Subscription[] = [];
+  scannedCardId: string = '';
+  successMessage: string | null = null;
+  errorMessage: string | null = null;
   showSuccessMessage: boolean = false;
-  successMessage: string = '';
   importSummary: {
     success: number;
     errors: string[];
   } | null = null;
-  errorMessage: any;
   apiErrors: any;
+  selectedEmployesToDelete: any[] = [];
+  employeToDelete: any = null;
 
   constructor(
     private route: ActivatedRoute,
     private departementService: DepartementService,
     private router: Router,
     private fb: FormBuilder,
-    
+    private assignationService: AssignationService
   ) {
     this.employeForm = this.fb.group({
       nom: ['', Validators.required],
@@ -94,80 +83,62 @@ export class ListeEmployesComponent implements OnInit {
     this.departementId = this.route.snapshot.params['id'];
     this.loadEmployes();
 
+    // Écoute des scans de carte
+    this.subscriptions.push(
+      this.assignationService.cardId$.subscribe(
+        cardId => {
+          if (cardId) {
+            this.scannedCardId = cardId;
+            this.errorMessage = null;
+            const cardInput = document.getElementById('cardIdInput') as HTMLInputElement;
+            if (cardInput) {
+              cardInput.value = cardId;
+            }
+          }
+        }
+      )
+    );
 
+    // Écoute des événements d'assignation réussie
+    this.subscriptions.push(
+      this.assignationService.getCardAssignedEvents().subscribe(
+        response => {
+          this.successMessage = response.message;
+          this.loadEmployes();
+          setTimeout(() => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('assignCardModal'));
+            modal?.hide();
+            this.resetAssignationForm();
+          }, 2000);
+        }
+      )
+    );
+
+    // Écoute des erreurs d'assignation
+    this.subscriptions.push(
+      this.assignationService.getCardAssignmentErrors().subscribe(
+        error => {
+          this.errorMessage = error.message;
+        }
+      )
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+    this.assignationService.disconnect();
   }
 
   get totalPages(): number {
     return Math.ceil(this.filteredEmployes.length / this.itemsPerPage);
   }
 
-  viewEmployeDetails(employe: Employe): void {
-    this.router.navigate(['/sample-page', employe.id]);
+  get paginatedEmployes(): Employe[] {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    return this.filteredEmployes.slice(startIndex, startIndex + this.itemsPerPage);
   }
 
-  loadEmployes(): void {
-    this.departementService.getEmployesByDepartement(this.departementId).subscribe({
-      next: (response: any) => {
-        const employesData = Array.isArray(response) ? response : [];
-        this.employes = employesData.map((employe: any) => ({
-          id: employe.id || '',
-          nom: employe.nom || '',
-          prenom: employe.prenom || '',
-          email: employe.email || '',
-          telephone: employe.telephone || '',
-          matricule: employe.matricule || '',
-          cardId: employe.cardId || '',
-          adresse: employe.adresse || '',
-          fonction: employe.fonction || '',
-          departement_id: employe.departement_id || '',
-          photo: employe.photo || null,
-          statut: employe.statut || '',
-          selected: false
-        }));
-        this.filteredEmployes = this.employes;
-      },
-      error: (err) => {
-        console.error('Erreur lors du chargement des employés:', err);
-        this.employes = [];
-        this.filteredEmployes = [];
-      }
-    });
-  }
 
-  downloadCSVTemplate(): void {
-    const headers = [
-      'nom',
-      'prenom',
-      'email',
-      'password',
-      'telephone',
-      'type',
-      'role',
-      'adresse',
-      'fonction',
-      'matricule',
-      'photo'
-    ];
-
-    const exampleData = [
-      'Dupont,Jeane,jeane.dupont@email.com,password123,771234567,employe,administrateur,123 Rue Example,Développeur', 'INF0014',
-      'Martine,Marie,marie.martine@email.com,password123,771234566,employe,administrateur,456 Avenue Test,Designer', 'INF0015'
-    ];
-
-    const csvContent = [
-      headers.join(','),
-      ...exampleData
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = window.URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'modele_import_employes.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
 
   onFileSelected(event: any): void {
     const file = event.target.files[0];
@@ -212,6 +183,35 @@ export class ListeEmployesComponent implements OnInit {
     }
   }
 
+  loadEmployes(): void {
+    this.departementService.getEmployesByDepartement(this.departementId).subscribe({
+      next: (response: any) => {
+        const employesData = Array.isArray(response) ? response : [];
+        this.employes = employesData.map((employe: any) => ({
+          id: employe.id || '',
+          nom: employe.nom || '',
+          prenom: employe.prenom || '',
+          email: employe.email || '',
+          telephone: employe.telephone || '',
+          matricule: employe.matricule || '',
+          cardId: employe.cardId || '',
+          adresse: employe.adresse || '',
+          fonction: employe.fonction || '',
+          departement_id: employe.departement_id || '',
+          photo: employe.photo || null,
+          statut: employe.statut || '',
+          selected: false
+        }));
+        this.filteredEmployes = this.employes;
+      },
+      error: (err) => {
+        console.error('Erreur lors du chargement des employés:', err);
+        this.employes = [];
+        this.filteredEmployes = [];
+      }
+    });
+  }
+
   onSearch(): void {
     this.filteredEmployes = this.employes.filter(employe =>
       employe.nom.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
@@ -222,9 +222,8 @@ export class ListeEmployesComponent implements OnInit {
     this.currentPage = 1;
   }
 
-  get paginatedEmployes(): Employe[] {
-    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    return this.filteredEmployes.slice(startIndex, startIndex + this.itemsPerPage);
+  viewEmployeDetails(employe: Employe): void {
+    this.router.navigate(['/sample-page', employe.id]);
   }
 
   toggleSelectAll(): void {
@@ -243,8 +242,6 @@ export class ListeEmployesComponent implements OnInit {
   getSelectedEmployes(): Employe[] {
     return this.employes.filter(employe => employe.selected);
   }
-
-  selectedEmployesToDelete: any[] = [];
 
   onActionSelected(): void {
     const selectedEmployes = this.getSelectedEmployes();
@@ -278,8 +275,6 @@ export class ListeEmployesComponent implements OnInit {
       });
     }
   }
-
-  employeToDelete: any = null;
 
   deleteEmploye(id: string): void {
     const employe = this.employes.find(e => e.id === id);
@@ -331,7 +326,6 @@ export class ListeEmployesComponent implements OnInit {
       fonction: employe.fonction,
     });
 
-    // Gérer l'affichage du champ mot de passe
     if (employe.fonction === 'DG' || employe.fonction === 'Vigile') {
       this.employeForm.get('password')?.enable();
       this.showPasswordField = true;
@@ -361,6 +355,67 @@ export class ListeEmployesComponent implements OnInit {
     }
   }
 
+  // Méthodes liées à l'assignation
+  assignCardId(employe: Employe): void {
+    this.selectedEmploye = employe;
+    this.resetAssignationForm();
+    this.assignationService.startAssignmentMode(employe.id);
+    const modal = new bootstrap.Modal(document.getElementById('assignCardModal'));
+    modal.show();
+  }
+
+  resetAssignationForm(): void {
+    this.scannedCardId = '';
+    this.errorMessage = null;
+    this.successMessage = null;
+    this.assignationService.endAssignmentMode();
+    const cardInput = document.getElementById('cardIdInput') as HTMLInputElement;
+    if (cardInput) {
+      cardInput.value = '';
+    }
+  }
+
+  confirmAssignCardId(): void {
+    if (this.selectedEmploye && this.scannedCardId) {
+      this.assignationService.assignCardSocket(
+        this.selectedEmploye.id,
+        this.scannedCardId
+      );
+    } else {
+      this.errorMessage = 'Veuillez scanner une carte RFID';
+    }
+  }
+
+
+
+  resetCardScan(): void {
+    this.scannedCardId = '';
+    const cardInput = document.getElementById('cardIdInput') as HTMLInputElement;
+    if (cardInput) {
+      cardInput.value = '';
+    }
+  }
+
+
+  updateStatus(employe: Employe): void {
+    if (!employe || !employe.id) {
+      console.error('Employé ou ID non défini');
+      alert('Erreur: Employé ou ID non défini');
+      return;
+    }
+
+    this.departementService.toggleStatus(employe.id).subscribe({
+      next: (response) => {
+        console.log('Statut mis à jour avec succès:', response);
+        this.loadEmployes();
+      },
+      error: (error) => {
+        console.error('Erreur lors de la mise à jour du statut:', error);
+        alert('Erreur lors de la mise à jour du statut de l\'employé');
+      }
+    });
+  }
+
   addEmploye(): void {
     if (this.employeForm.invalid) {
       this.employeForm.markAllAsTouched();
@@ -382,37 +437,38 @@ export class ListeEmployesComponent implements OnInit {
       formData.append('password', this.employeForm.get('password')?.value);
     }
 
-    this.departementService.getDepartementById(this.departementId).subscribe(departement => {
-      const departementCode = departement.nom.substring(0, 3).toUpperCase();
-      const nextMatricule = (this.employes.length + 1).toString().padStart(3, '0');
-      const randomDigits = Math.floor(Math.random() * 90 + 10).toString();
-      const matricule = `${departementCode}${nextMatricule}${randomDigits}`;
+    this.departementService.getDepartementById(this.departementId).subscribe({
+      next: departement => {
+        const departementCode = departement.nom.substring(0, 3).toUpperCase();
+        const nextMatricule = (this.employes.length + 1).toString().padStart(3, '0');
+        const randomDigits = Math.floor(Math.random() * 90 + 10).toString();
+        const matricule = `${departementCode}${nextMatricule}${randomDigits}`;
 
-      formData.append('matricule', matricule);
-      formData.append('departement_id', this.departementId);
+        formData.append('matricule', matricule);
+        formData.append('departement_id', this.departementId);
 
-      this.departementService.createEmploye(formData).subscribe({
-        next: (response) => {
-          console.log('Employé ajouté avec succès');
-          const modal = bootstrap.Modal.getInstance(document.getElementById('addEmployeModal'));
-          modal?.hide();
-          this.loadEmployes();
-          this.apiErrors = {};  // Réinitialiser les erreurs après un succès
-        },
-        error: (err) => {
-          console.error('Erreur lors de l\'ajout de l\'employé:', err);
-          // Vérifiez si l'API renvoie des erreurs spécifiques
-          if (err.error && err.error.errors) {
-            // Si des erreurs sont renvoyées, les assigner à `apiErrors`
-            this.apiErrors = err.error.errors;
-          } else {
-            this.apiErrors = { general: ['Une erreur inconnue est survenue.'] };  // Message générique
+        this.departementService.createEmploye(formData).subscribe({
+          next: () => {
+            console.log('Employé ajouté avec succès');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addEmployeModal'));
+            modal?.hide();
+            this.loadEmployes();
+            this.apiErrors = {};
+          },
+          error: (err) => {
+            console.error('Erreur lors de l\'ajout de l\'employé:', err);
+            if (err.error && err.error.errors) {
+              this.apiErrors = err.error.errors;
+            } else {
+              this.apiErrors = { general: ['Une erreur inconnue est survenue.'] };
+            }
           }
-        }
-      });
-    }, error => {
-      console.error('Erreur lors de la récupération des informations du département:', error);
-      alert('Erreur lors de la récupération des informations du département');
+        });
+      },
+      error: (error) => {
+        console.error('Erreur lors de la récupération des informations du département:', error);
+        alert('Erreur lors de la récupération des informations du département');
+      }
     });
   }
 
@@ -438,7 +494,7 @@ export class ListeEmployesComponent implements OnInit {
     }
 
     this.departementService.updateEmploye(this.selectedEmploye.id, formData).subscribe({
-      next: (response) => {
+      next: () => {
         console.log('Employé modifié avec succès');
         const modal = bootstrap.Modal.getInstance(document.getElementById('editEmployeModal'));
         modal?.hide();
@@ -446,70 +502,17 @@ export class ListeEmployesComponent implements OnInit {
         this.selectedEmploye = null;
         this.selectedPhoto = null;
         this.employeForm.reset();
-        this.apiErrors = {};  // Réinitialiser les erreurs après un succès
+        this.apiErrors = {};
       },
       error: (err) => {
         console.error('Erreur lors de la modification de l\'employé:', err);
-        // Vérifiez si l'API renvoie des erreurs spécifiques
         if (err.error && err.error.errors) {
-          // Si des erreurs sont renvoyées, les assigner à `apiErrors`
           this.apiErrors = err.error.errors;
         } else {
-          this.apiErrors = { general: ['Une erreur inconnue est survenue.'] };  // Message générique
+          this.apiErrors = { general: ['Une erreur inconnue est survenue.'] };
         }
       }
     });
-  }
-
-  updateStatus(employe: Employe): void {
-    if (!employe || !employe.id) {
-      console.error('Employé ou ID non défini');
-      alert('Erreur: Employé ou ID non défini');
-      return;
-    }
-
-    this.departementService.toggleStatus(employe.id).subscribe({
-      next: (response) => {
-        console.log('Statut mis à jour avec succès:', response);
-        // Recharger les données pour refléter le changement
-        this.loadEmployes();
-      },
-      error: (error) => {
-        console.error('Erreur lors de la mise à jour du statut:', error);
-        alert('Erreur lors de la mise à jour du statut de l\'employé');
-      }
-    });
-  }
-
-  assignCardId(employe: Employe): void {
-    this.selectedEmploye = employe;
-    const modal = new bootstrap.Modal(document.getElementById('assignCardModal'));
-    modal.show();
-  }
-
-  confirmAssignCardId(): void {
-    const cardIdInput = (document.getElementById('cardIdInput') as HTMLInputElement)?.value;
-    if (this.selectedEmploye && cardIdInput) {
-      this.departementService.assignCard(this.selectedEmploye.id, cardIdInput).subscribe({
-        next: (response) => {
-          console.log('Card ID assigné avec succès:', response);
-          this.errorMessage = null;
-          const modal = bootstrap.Modal.getInstance(document.getElementById('assignCardModal'));
-          modal?.hide();
-          this.loadEmployes();
-        },
-        error: (error: HttpErrorResponse) => {
-          console.error('Erreur lors de l\'assignation du Card ID:', error);
-          this.errorMessage = error?.error?.message || 'Une erreur est survenue lors de l\'assignation du Card ID.';
-        }
-      });
-    } else {
-      if (!this.selectedEmploye) {
-        this.errorMessage = 'Aucun employé sélectionné.';
-      } else if (!cardIdInput) {
-        this.errorMessage = 'Veuillez saisir un Card ID.';
-      }
-    }
   }
 
   getControl(controlName: string) {

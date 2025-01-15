@@ -1,3 +1,4 @@
+// Dépendances nécessaires
 const { SerialPort } = require('serialport');
 const axios = require('axios');
 const express = require('express');
@@ -5,8 +6,15 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 
+// Configuration de l'application Express
 const app = express();
 const port = 3000;
+
+// État du mode d'assignation
+let assignmentMode = {
+  active: false,
+  userId: null
+};
 
 // Configuration d'axios pour l'API backend
 const api = axios.create({
@@ -30,12 +38,14 @@ const io = new Server(server, {
   cors: {
     origin: 'http://localhost:4200',
     methods: ['GET', 'POST'],
+    credentials: true  // Ajoutez cette ligne
+
   },
 });
 
 // Configuration du port série Arduino
 const serialPort = new SerialPort({
-  path: '/dev/ttyUSB0', // Chemin vers le port USB de l'Arduino
+  path: '/dev/ttyUSB0',
   baudRate: 9600,
 });
 
@@ -43,16 +53,29 @@ const serialPort = new SerialPort({
 const ENDPOINTS = {
   pointer: '/pointages/pointer',
   validerPointage: (cardId) => `pointages/cartes/${cardId}/valider`,
-  verifyCard: '/utilisateurs/verify-card'
+  verifyCard: '/utilisateurs/verify-card',
+  assignCard: (userId) => `/utilisateurs/${userId}/assign-card`
 };
 
 // Gestion des connexions Socket.IO
 io.on('connection', (socket) => {
   console.log('Client connecté via Socket.IO');
 
-  // Gestion de la déconnexion
   socket.on('disconnect', () => {
     console.log('Client déconnecté');
+  });
+
+  // Gestion du mode d'assignation
+  socket.on('start-assignment-mode', (userId) => {
+    assignmentMode.active = true;
+    assignmentMode.userId = userId;
+    console.log('Mode assignation activé pour userId:', userId);
+  });
+
+  socket.on('end-assignment-mode', () => {
+    assignmentMode.active = false;
+    assignmentMode.userId = null;
+    console.log('Mode assignation désactivé');
   });
 
   // Contrôle manuel de la porte
@@ -81,17 +104,85 @@ io.on('connection', (socket) => {
       });
     }
   });
+
+  // Assignation de carte via Socket.IO
+  socket.on('assign-card', async (data) => {
+    try {
+      const response = await api.post(
+        ENDPOINTS.assignCard(data.userId),
+        { cardId: data.cardId }
+      );
+
+      socket.emit('card-assigned', {
+        status: true,
+        message: 'Carte assignée avec succès',
+        data: response.data
+      });
+
+      io.emit('card-assignment-update', {
+        userId: data.userId,
+        cardId: data.cardId,
+        timestamp: new Date()
+      });
+    } catch (error) {
+      socket.emit('card-assignment-error', {
+        status: false,
+        message: error.response?.data?.message || 'Erreur lors de l\'assignation de la carte',
+        error: error.response?.data
+      });
+    }
+  });
+
+  // Réception d'une carte RFID
+  socket.on('rfid-scan', async (cardId) => {
+    if (assignmentMode.active) {
+      // En mode assignation, émettre directement l'ID de la carte
+      socket.emit('card-scanned', { cardId });
+      return;
+    }
+
+    // Mode normal (pointage)
+    try {
+      const verifyResponse = await api.get(ENDPOINTS.verifyCard, {
+        params: { cardId }
+      });
+
+      if (!verifyResponse.data.status) {
+        socket.emit('card-error', { cardId, message: 'Carte non valide' });
+        return;
+      }
+
+      const pointageResponse = await api.post(ENDPOINTS.pointer, { cardId });
+
+      if (pointageResponse.data.status) {
+        socket.emit('card-scanned', {
+          cardId,
+          utilisateur: pointageResponse.data.data.utilisateur,
+          pointage: pointageResponse.data.data.pointage
+        });
+
+        if (pointageResponse.data.data.pointage.estEnAttente) {
+          socket.emit('pointage-en-attente', {
+            cardId,
+            pointage: pointageResponse.data.data.pointage
+          });
+        }
+      } else {
+        socket.emit('card-error', {
+          cardId,
+          message: pointageResponse.data.message
+        });
+      }
+    } catch (error) {
+      socket.emit('card-error', {
+        cardId,
+        message: error.response?.data?.message || 'Erreur système'
+      });
+    }
+  });
 });
 
-// Middleware de gestion des erreurs
-const errorHandler = (error, req, res, next) => {
-  console.error('Error:', error);
-  res.status(error.response?.status || 500).json({
-    status: false,
-    message: error.message,
-    data: error.response?.data || null
-  });
-};
+// Routes Express
 
 // Route pour vérifier une carte
 app.get('/verify-card', async (req, res, next) => {
@@ -105,13 +196,65 @@ app.get('/verify-card', async (req, res, next) => {
   }
 });
 
+// Route pour assigner une carte
+app.post('/utilisateurs/:id/assign-card', async (req, res, next) => {
+  try {
+    const response = await api.post(
+      ENDPOINTS.assignCard(req.params.id),
+      { cardId: req.body.cardId }
+    );
+
+    io.emit('card-assignment-update', {
+      userId: req.params.id,
+      cardId: req.body.cardId,
+      timestamp: new Date()
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Gestion des données reçues du lecteur RFID
 serialPort.on('data', async (data) => {
   const cardId = data.toString().trim();
   console.log('Card ID reçu:', cardId);
 
+  // Vérifier si nous sommes en mode assignation
+  if (assignmentMode.active && assignmentMode.userId) {
+    try {
+      // Tentative d'assignation directe sans vérification
+      const response = await api.post(
+        ENDPOINTS.assignCard(assignmentMode.userId),
+        { cardId }
+      );
+
+      serialPort.write('valid\n');
+      io.emit('card-scanned', { cardId });
+      io.emit('card-assigned', {
+        status: true,
+        message: 'Carte assignée avec succès',
+        data: response.data
+      });
+
+      // Réinitialiser le mode assignation
+      assignmentMode.active = false;
+      assignmentMode.userId = null;
+
+    } catch (error) {
+      serialPort.write('error\n');
+      io.emit('card-assignment-error', {
+        status: false,
+        message: error.response?.data?.message || 'Erreur lors de l\'assignation de la carte',
+        error: error.response?.data
+      });
+    }
+    return;
+  }
+
+  // Mode normal (pointage)
   try {
-    // 1. Vérification de la validité de la carte
     const verifyResponse = await api.get(ENDPOINTS.verifyCard, {
       params: { cardId }
     });
@@ -122,7 +265,6 @@ serialPort.on('data', async (data) => {
       return;
     }
 
-    // 2. Enregistrement du pointage
     const pointageResponse = await api.post(ENDPOINTS.pointer, { cardId });
 
     if (pointageResponse.data.status) {
@@ -133,7 +275,6 @@ serialPort.on('data', async (data) => {
         pointage: pointageResponse.data.data.pointage
       });
 
-      // Gestion des pointages en attente
       if (pointageResponse.data.data.pointage.estEnAttente) {
         io.emit('pointage-en-attente', {
           cardId,
@@ -149,12 +290,8 @@ serialPort.on('data', async (data) => {
     }
   } catch (error) {
     console.error('Erreur:', error.message);
-
-    // Gestion des erreurs HTTP
     if (error.response) {
       const errorMessage = error.response.data?.message || 'Erreur système';
-
-      // Gestion spéciale des erreurs 403 (carte non assignée/inactive)
       if (error.response.status === 403) {
         serialPort.write('invalid\n');
         io.emit('card-error', {
@@ -176,7 +313,16 @@ serialPort.on('data', async (data) => {
   }
 });
 
-// Application du middleware d'erreur
+// Middleware de gestion des erreurs
+const errorHandler = (error, req, res, next) => {
+  console.error('Error:', error);
+  res.status(error.response?.status || 500).json({
+    status: false,
+    message: error.message,
+    data: error.response?.data || null
+  });
+};
+
 app.use(errorHandler);
 
 // Route de test
