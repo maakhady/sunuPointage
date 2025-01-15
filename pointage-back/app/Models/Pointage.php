@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Carbon\Carbon;
-use Illuminate\Http\Request;
+
 use MongoDB\Laravel\Eloquent\Model; //as Eloquent; // Utilisation de MongoDB pour Laravel
 // use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -50,10 +50,10 @@ class Pointage extends Model
                     ->where('cardId', $this->cardId);
     }
 
-    // public function utilisateur()
-    // {
-    //     return $this->belongsTo(Utilisateur::class, 'user_id','_id');
-    // }
+    public function user()
+    {
+        return $this->belongsTo(Utilisateur::class, 'user_id','_id');
+    }
 
 
     // Relation avec le vigile qui valide

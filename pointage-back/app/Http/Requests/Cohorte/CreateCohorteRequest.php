@@ -14,7 +14,7 @@ class CreateCohorteRequest extends FormRequest
     public function rules()
     {
         return [
-            'nom' => 'required|string|max:255|unique',
+            'nom' => 'required|string|max:255|unique:cohortes,nom',
             'annee_scolaire' => 'required|string|max:255',
             'promo' => 'required|integer|max:255'
         ];

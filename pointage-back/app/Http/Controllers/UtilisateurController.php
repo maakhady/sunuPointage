@@ -296,7 +296,7 @@ class UtilisateurController extends Controller
 
             // Validation de l'en-tête (Important)
             $expectedHeaders = [ // Ajustez selon vos besoins
-                'nom', 'prenom', 'email', 'telephone', 'photo',
+                'nom', 'prenom', 'email', 'telephone', 
                 'matricule',  'adresse',
             ];
 
@@ -316,7 +316,6 @@ class UtilisateurController extends Controller
                         'telephone' => 'nullable|string|max:20',
                         'photo' => 'nullable|string|max:255',
                         'matricule' => 'nullable|string|max:255',
-                        'type' => 'nullable|string|max:255',
                         'adresse' => 'nullable|string|max:255',
 
 
@@ -399,8 +398,6 @@ class UtilisateurController extends Controller
                     'telephone' => 'nullable|string|max:20',
                     'photo' => 'nullable|string|max:255',
                     'matricule' => 'nullable|string|max:255',
-                    'type' => 'nullable|string|max:255',
-                    'statut' => 'nullable|string|max:255',
                     'adresse' => 'nullable|string|max:255',
                     'fonction' => 'nullable|string|max:255',
 

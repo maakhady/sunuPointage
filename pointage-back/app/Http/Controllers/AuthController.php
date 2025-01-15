@@ -122,8 +122,83 @@ class AuthController extends Controller
     }
 
     //Creation avec les conditions de departement et cohorte
-    public function creerUser(RegisterRequest $request) {
+    // public function creerUser(RegisterRequest $request) {
+    //     try {
+    //         $userData = [
+    //             'nom' => $request->nom,
+    //             'prenom' => $request->prenom,
+    //             'email' => $request->email,
+    //             'telephone' => $request->telephone,
+    //             'matricule' => $request->matricule,
+    //             'adresse' => $request->adresse,
+    //             'type' => $request->departement_id ? 'employe' : 'apprenant',
+    //             'fonction' => $request->departement_id ? $request->fonction : null,
+    //             'departement_id' => $request->departement_id,
+    //             'cohorte_id' => $request->cohorte_id,
+    //             'photo' => $request->photo,
+    //             'statut' => 'actif',
+    //             // 'role' => $request->role ?? 'utilisateur_simple',
+    //         ];
+
+    //         // Ajouter password uniquement pour vigile et DG
+    //         if (in_array($request->fonction, ['vigile', 'DG'])) {
+    //             if (!$request->password) {
+    //                 return response()->json([
+    //                     'status' => false,
+    //                     'message' => 'Mot de passe requis pour cette fonction'
+    //                 ], 400);
+    //             }
+    //             $userData['password'] = Hash::make($request->password);
+    //         }
+
+    //         $newUser = Utilisateur::create($userData);
+
+    //         Journal::create([
+    //             'user_id' => $newUser->_id,
+    //             'action' => 'creation_compte',
+    //             'details' => [
+    //                 'timestamp' => now(),
+    //                 'ip' => $request->ip(),
+    //                 'created_by' => 'self_registration'
+    //             ]
+    //         ]);
+
+    //         return response()->json([
+    //             'status' => true,
+    //             'message' => 'Utilisateur créé avec succès',
+    //             'data' => $newUser
+    //         ], 201);
+
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Erreur lors de la création: ' . $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
+    public function creerUser(RegisterRequest $request)
+    {
         try {
+            // Gérer l'upload de la photo
+            $photoData = null;
+            if ($request->hasFile('photo')) {
+                // Valider le fichier
+                $request->validate([
+                    'photo' => 'image|mimes:jpeg,png,jpg|max:2048'
+                ]);
+
+                // Lire le contenu du fichier
+                $photoContent = file_get_contents($request->file('photo')->path());
+
+                // Préparer les données de la photo pour MongoDB
+                $photoData = [
+                    'data' => base64_encode($photoContent),
+                    'mime_type' => $request->file('photo')->getMimeType(),
+                    'name' => $request->file('photo')->getClientOriginalName()
+                ];
+            }
+
             $userData = [
                 'nom' => $request->nom,
                 'prenom' => $request->prenom,
@@ -135,9 +210,8 @@ class AuthController extends Controller
                 'fonction' => $request->departement_id ? $request->fonction : null,
                 'departement_id' => $request->departement_id,
                 'cohorte_id' => $request->cohorte_id,
-                'photo' => $request->photo,
+                'photo' => $photoData, // Stocker directement les données de la photo
                 'statut' => 'actif',
-                // 'role' => $request->role ?? 'utilisateur_simple',
             ];
 
             // Ajouter password uniquement pour vigile et DG
@@ -152,6 +226,14 @@ class AuthController extends Controller
             }
 
             $newUser = Utilisateur::create($userData);
+
+            // Transformer les données de la photo pour la réponse
+            if ($newUser->photo) {
+                $newUser->photo = [
+                    'url' => 'data:' . $newUser->photo['mime_type'] . ';base64,' . $newUser->photo['data'],
+                    'name' => $newUser->photo['name']
+                ];
+            }
 
             Journal::create([
                 'user_id' => $newUser->_id,
