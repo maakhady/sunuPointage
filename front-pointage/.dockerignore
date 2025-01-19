@@ -1,0 +1,39 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Directories
+node_modules/
+jspm_packages/
+.angular/
+coverage/
+.nyc_output/
+bower_components/
+.npm/
+.cache/
+dist/
+
+# Environment files
+.env
+.env.test
+
+# IDE files
+.vscode/
+.idea/
+
+# TypeScript
+*.tsbuildinfo
+typings/
+
+# Test coverage
+coverage
+*.lcov
+
+# Misc
+.git/
+.gitignore
+.DS_Store

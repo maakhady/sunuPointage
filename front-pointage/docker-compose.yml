@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # Frontend Angular
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.angular
+    container_name: pointage-frontend
+    ports:
+      - "4200:4200"
+    networks:
+      - pointage-network
+    restart: unless-stopped
+
+  # Serveur Node.js - Pointage (port 3000)
+  pointage-server:
+    build:
+      context: ./projet-socket
+      dockerfile: Dockerfile.node
+    container_name: pointage-server
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    command: node server.js
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0"
+    privileged: true
+    networks:
+      - pointage-network
+    restart: unless-stopped
+
+  # Serveur Node.js - RFID (port 3001)
+  rfid-server:
+    build:
+      context: ./projet-socket
+      dockerfile: Dockerfile.node
+    container_name: rfid-server
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+    command: node index.js
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0"
+    privileged: true
+    networks:
+      - pointage-network
+    restart: unless-stopped
+
+networks:
+  pointage-network:
+    driver: bridge

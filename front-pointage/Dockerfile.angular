@@ -1,0 +1,33 @@
+# Stage 1: Build
+FROM node:20 as builder
+
+WORKDIR /app
+
+# Copie des fichiers package*.json
+COPY package*.json ./
+
+# Installation des dépendances
+RUN npm install
+
+# Copie du reste du code source
+COPY . .
+
+# Build de l'application avec la bonne configuration et debug
+RUN npm run build -- --configuration=production && \
+    echo "Contenu du dossier dist:" && \
+    ls -la dist/ && \
+    echo "Structure complète:" && \
+    find dist/
+
+# Stage 2: Serveur
+FROM nginx:alpine
+
+# Copie de la configuration Nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Chemin corrigé pour le build (nous ajusterons ce chemin après avoir vu la structure)
+COPY --from=builder /app/dist/ /usr/share/nginx/html
+
+EXPOSE 4200
+
+CMD ["nginx", "-g", "daemon off;"]

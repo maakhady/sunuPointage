@@ -1,0 +1,24 @@
+FROM node:20-slim
+
+WORKDIR /app
+
+# Installation des dépendances système nécessaires pour SerialPort
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3 \
+    build-essential \
+    udev \
+    libudev-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copie des fichiers package*.json
+COPY package*.json ./
+
+# Installation des dépendances Node.js
+RUN npm install --production
+
+# Copie du reste des fichiers
+COPY . .
+
+# Les commandes de démarrage (server.js ou index.js) seront gérées par docker-compose
