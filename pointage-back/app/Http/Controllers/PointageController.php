@@ -273,41 +273,8 @@ class PointageController extends Controller
      * @return JsonResponse
      */
 
-
-    //  public function index(Request $request)
-    //  {
-    //      $query = Pointage::query();
-
-    //      // Filtre par date
-    //      if ($date = $request->input('date')) {
-    //          $query->whereDate('date', Carbon::parse($date));
-    //      }
-
-    //      // Filtre par utilisateur
-    //      if ($userId = $request->input('user_id')) {
-    //          $query->where('user_id', $userId);
-    //      }
-
-    //      // Récupération des résultats sans pagination
-    //      $pointages = $query->with(['user', 'vigile'])->get();
-
-    //      $this->createLog('consultation_pointages', [
-    //          'filtres' => [
-    //              'date' => $date,
-    //              'user_id' => $userId
-    //          ],
-    //          'nombre_resultats' => $pointages->count()
-    //      ]);
-
-    //      return response()->json([
-    //          'status' => true,
-    //          'data' => $pointages
-    //      ]);
-
-    //     }
-
     public function index(Request $request)
-{
+    {
     try {
         $query = Pointage::query();
 
@@ -375,221 +342,232 @@ class PointageController extends Controller
      * @return JsonResponse
      */
 
-    public function historique(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'debut' => 'required|date',
-            'fin' => 'required|date|after_or_equal:debut',
-            'user_id' => 'sometimes|exists:utilisateurs,_id',
-            'type' => 'sometimes|in:retard,absence'
-        ]);
+     public function historique(Request $request)
+     {
+         $validator = Validator::make($request->all(), [
+             'debut' => 'required|date',
+             'fin' => 'required|date|after_or_equal:debut',
+             'user_id' => 'sometimes|exists:utilisateurs,_id',
+             'type' => 'sometimes|in:retard,absence,presence'  // Ajout de 'presence'
+         ]);
 
-        if ($validator->fails()) {
-            $this->createLog('historique_pointages_echec', [
-                'erreurs' => $validator->errors()->toArray()
-            ], 'error');
+         if ($validator->fails()) {
+             $this->createLog('historique_pointages_echec', [
+                 'erreurs' => $validator->errors()->toArray()
+             ], 'error');
 
-            return response()->json([
-                'status' => false,
-                'message' => $validator->errors()
-            ], 400);
-        }
+             return response()->json([
+                 'status' => false,
+                 'message' => $validator->errors()
+             ], 400);
+         }
 
-        $query = Pointage::whereBetween('date', [
-            Carbon::parse($request->debut),
-            Carbon::parse($request->fin)
-        ]);
+         $query = Pointage::whereBetween('date', [
+             Carbon::parse($request->debut),
+             Carbon::parse($request->fin)
+         ]);
 
-              // Filtre par utilisateur
-        if ($request->user_id) {
-            $query->where('user_id', $request->user_id);
-        }
-       // Filtre par type
-        if ($request->type === 'retard') {
-            $query->where('estRetard', true);
-        } elseif ($request->type === 'absence') {
-            $query->where('estPresent', false);
-        }
+         // Filtre par utilisateur
+         if ($request->user_id) {
+             $query->where('user_id', $request->user_id);
+         }
 
-        $pointages = $query->with(['utilisateur'])
-                        ->orderBy('date', 'desc')
-                        ->paginate($request->input('per_page', 15));
+         // Filtre par type
+         if ($request->type === 'retard') {
+             $query->where('estRetard', true);
+         } elseif ($request->type === 'absence') {
+             $query->where('estPresent', false);
+         } elseif ($request->type === 'presence') {
+             $query->where('estPresent', true);
+         }
 
-        $this->createLog('historique_pointages', [
-            'filtres' => [
-                'debut' => $request->debut,
-                'fin' => $request->fin,
-                'user_id' => $request->user_id,
-                'type' => $request->type
-            ],
-            'nombre_resultats' => $pointages->total()
-        ]);
+         // Récupération sans pagination
+         $pointages = $query->with(['user'])->orderBy('date', 'desc')->get();
 
-        return response()->json([
-            'status' => true,
-            'data' => $pointages
-        ]);
-    }
+         // Calcul des statistiques comme dans recupererPresences
+         $total = $pointages->count();
+         $statistiques = [
+             'total_pointages' => $total,
+             'total_present' => $pointages->where('estPresent', true)->count(),
+             'total_retard' => $pointages->where('estRetard', true)->count(),
+             'total_absent' => $pointages->where('estPresent', false)->count(),
+             'pourcentage_presence' => $total > 0 ?
+                 round(($pointages->where('estPresent', true)->count() / $total) * 100, 2) : 0
+         ];
+
+         $this->createLog('historique_pointages', [
+             'filtres' => [
+                 'debut' => $request->debut,
+                 'fin' => $request->fin,
+                 'user_id' => $request->user_id,
+                 'type' => $request->type
+             ],
+             'statistiques' => $statistiques,
+             'nombre_resultats' => $total
+         ]);
+
+         return response()->json([
+             'status' => true,
+             'message' => 'Récupération de l\'historique réussie',
+             'data' => $pointages,
+             'statistiques' => $statistiques
+         ]);
+     }
+
 
 
     // filtrer
 
     public function recupererPresences(Request $request)
-    {
-        try {
-            // Validation unifiée des paramètres
-            $validated = $request->validate([
-                'date' => 'required_without:date_debut|date',
-                'date_debut' => 'required_without:date|date',
-                'date_fin' => 'required_with:date_debut|date|after_or_equal:date_debut',
-                'periode' => 'required_without:date_debut|in:journee,semaine,mois',
-                'cohorte_id' => 'sometimes|exists:cohortes,_id',
-                'departement_id' => 'sometimes|exists:departements,_id',
-                'statut_presence' => 'sometimes|in:present,absent,retard',
-                'type' => 'sometimes|in:apprenant,employe',
-                'per_page' => 'sometimes|integer|min:1'
+{
+    try {
+        // Validation unifiée des paramètres
+        $validated = $request->validate([
+            'date' => 'required_without:date_debut|date',
+            'date_debut' => 'required_without:date|date',
+            'date_fin' => 'required_with:date_debut|date|after_or_equal:date_debut',
+            'periode' => 'required_without:date_debut|in:journee,semaine,mois',
+            'cohorte_id' => 'sometimes|exists:cohortes,_id',
+            'departement_id' => 'sometimes|exists:departements,_id',
+            'statut_presence' => 'sometimes|in:present,absent,retard',
+            'type' => 'sometimes|in:apprenant,employe'
+        ]); // Suppression de per_page dans la validation
+
+        // Construction de la requête de base
+        $query = Pointage::with([
+            'user' => function($query) {
+                $query->select('_id', 'nom', 'prenom', 'matricule', 'cardId', 'type', 'departement_id', 'cohorte_id');
+            },
+            'vigile' => function($query) {
+                $query->select('_id', 'nom', 'prenom');
+            }
+        ]);
+
+        // Filtrage par type et département
+        if (isset($validated['type']) || isset($validated['departement_id'])) {
+            $query->whereHas('user', function($q) use ($validated) {
+                if (isset($validated['type'])) {
+                    $q->where('type', $validated['type']);
+                }
+                if (isset($validated['departement_id'])) {
+                    $q->where('departement_id', $validated['departement_id']);
+                }
+            });
+        }
+
+        // Gestion des dates
+        if (isset($validated['date_debut']) && isset($validated['date_fin'])) {
+            // Mode plage de dates
+            $query->whereBetween('date', [
+                Carbon::parse($validated['date_debut']),
+                Carbon::parse($validated['date_fin'])
             ]);
-
-            // Construction de la requête de base
-            $query = Pointage::with([
-                'user' => function($query) {
-                    $query->select('_id', 'nom', 'prenom', 'matricule', 'cardId', 'type', 'departement_id', 'cohorte_id');
-                },
-                'vigile' => function($query) {
-                    $query->select('_id', 'nom', 'prenom');
-                }
-            ]);
-
-            // Filtrage par type et département
-            if (isset($validated['type']) || isset($validated['departement_id'])) {
-                $query->whereHas('user', function($q) use ($validated) {
-                    if (isset($validated['type'])) {
-                        $q->where('type', $validated['type']);
-                    }
-                    if (isset($validated['departement_id'])) {
-                        $q->where('departement_id', $validated['departement_id']);
-                    }
-                });
+        } else {
+            // Mode période
+            $date = Carbon::parse($validated['date']);
+            switch ($validated['periode']) {
+                case 'journee':
+                    $query->whereDate('date', $date);
+                    break;
+                case 'semaine':
+                    $query->whereBetween('date', [
+                        $date->copy()->startOfWeek(),
+                        $date->copy()->endOfWeek()
+                    ]);
+                    break;
+                case 'mois':
+                    $query->whereBetween('date', [
+                        $date->copy()->startOfMonth(),
+                        $date->copy()->endOfMonth()
+                    ]);
+                    break;
             }
+        }
 
-            // Gestion des dates
-            if (isset($validated['date_debut']) && isset($validated['date_fin'])) {
-                // Mode plage de dates
-                $query->whereBetween('date', [
-                    Carbon::parse($validated['date_debut']),
-                    Carbon::parse($validated['date_fin'])
-                ]);
-            } else {
-                // Mode période
-                $date = Carbon::parse($validated['date']);
-                switch ($validated['periode']) {
-                    case 'journee':
-                        $query->whereDate('date', $date);
-                        break;
-                    case 'semaine':
-                        $query->whereBetween('date', [
-                            $date->copy()->startOfWeek(),
-                            $date->copy()->endOfWeek()
-                        ]);
-                        break;
-                    case 'mois':
-                        $query->whereBetween('date', [
-                            $date->copy()->startOfMonth(),
-                            $date->copy()->endOfMonth()
-                        ]);
-                        break;
-                }
+        // Filtrage par cohorte
+        if (isset($validated['cohorte_id'])) {
+            $query->whereHas('user', function($q) use ($validated) {
+                $q->where('cohorte_id', $validated['cohorte_id']);
+            });
+        }
+
+        // Filtrage par statut de présence
+        if (isset($validated['statut_presence'])) {
+            switch ($validated['statut_presence']) {
+                case 'present':
+                    $query->where('estPresent', true);
+                    break;
+                case 'absent':
+                    $query->where('estPresent', false);
+                    break;
+                case 'retard':
+                    $query->where('estRetard', true);
+                    break;
             }
+        }
 
-            // Filtrage par cohorte
-            if (isset($validated['cohorte_id'])) {
-                $query->whereHas('user', function($q) use ($validated) {
-                    $q->where('cohorte_id', $validated['cohorte_id']);
-                });
-            }
+        // Récupération des résultats sans pagination
+        $resultats = $query->orderBy('date', 'desc')->get();
 
-            // Filtrage par statut de présence
-            if (isset($validated['statut_presence'])) {
-                switch ($validated['statut_presence']) {
-                    case 'present':
-                        $query->where('estPresent', true);
-                        break;
-                    case 'absent':
-                        $query->where('estPresent', false);
-                        break;
-                    case 'retard':
-                        $query->where('estRetard', true);
-                        break;
-                }
-            }
+        // Calcul des statistiques
+        $total = $resultats->count();
+        $statistiques = [
+            'total_pointages' => $total,
+            'total_present' => $resultats->where('estPresent', true)->count(),
+            'total_retard' => $resultats->where('estRetard', true)->count(),
+            'total_absent' => $resultats->where('estPresent', false)->count(),
+            'pourcentage_presence' => $total > 0 ?
+                round(($resultats->where('estPresent', true)->count() / $total) * 100, 2) : 0
+        ];
 
-            // Récupération des résultats avec pagination optionnelle
-            $perPage = $validated['per_page'] ?? null;
-            $resultats = $perPage ?
-                $query->orderBy('date', 'desc')->paginate($perPage) :
-                $query->orderBy('date', 'desc')->get();
+        // Log de l'opération
+        $this->createLog('recuperation_presences', [
+            'filtres' => $validated,
+            'statistiques' => $statistiques,
+            'nombre_resultats' => $total
+        ]);
 
-            // Calcul des statistiques
-            $total = $resultats instanceof \Illuminate\Pagination\LengthAwarePaginator ?
-                $resultats->total() : $resultats->count();
+        return response()->json([
+            'status' => true,
+            'message' => 'Récupération des présences réussie',
+            'data' => $resultats,
+            'statistiques' => $statistiques
+        ]);
 
-            $statistiques = [
-                'total_pointages' => $total,
-                'total_present' => $resultats->where('estPresent', true)->count(),
-                'total_retard' => $resultats->where('estRetard', true)->count(),
-                'total_absent' => $resultats->where('estPresent', false)->count(),
-                'pourcentage_presence' => $total > 0 ?
-                    round(($resultats->where('estPresent', true)->count() / $total) * 100, 2) : 0
-            ];
+    } catch (\Exception $e) {
+        $this->createLog('erreur_recuperation_presences', [
+            'message' => $e->getMessage()
+        ], 'error');
 
-            // Log de l'opération
-            $this->createLog('recuperation_presences', [
-                'filtres' => $validated,
-                'statistiques' => $statistiques,
-                'nombre_resultats' => $total
+        return response()->json([
+            'status' => false,
+            'message' => 'Erreur lors de la récupération des présences',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+            /**
+         * Récupérer les pointages du jour
+         * @return JsonResponse
+         */
+        public function getPointagesJour()
+        {
+            $today = Carbon::today();
+
+            $pointages = Pointage::whereDate('date', $today)
+                ->with(['utilisateur', 'vigile'])
+                ->get();
+
+            $this->createLog('consultation_pointages_jour', [
+                'date' => $today->format('Y-m-d'),
+                'nombre_resultats' => $pointages->count()
             ]);
 
             return response()->json([
                 'status' => true,
-                'message' => 'Récupération des présences réussie',
-                'data' => $resultats,
-                'statistiques' => $statistiques
+                'data' => $pointages
             ]);
-
-        } catch (\Exception $e) {
-            $this->createLog('erreur_recuperation_presences', [
-                'message' => $e->getMessage()
-            ], 'error');
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Erreur lors de la récupération des présences',
-                'error' => $e->getMessage()
-            ], 500);
         }
-    }
-    /**
- * Récupérer les pointages du jour
- * @return JsonResponse
- */
-public function getPointagesJour()
-{
-    $today = Carbon::today();
-
-    $pointages = Pointage::whereDate('date', $today)
-        ->with(['utilisateur', 'vigile'])
-        ->get();
-
-    $this->createLog('consultation_pointages_jour', [
-        'date' => $today->format('Y-m-d'),
-        'nombre_resultats' => $pointages->count()
-    ]);
-
-    return response()->json([
-        'status' => true,
-        'data' => $pointages
-    ]);
-}
 
 
 public function getUtilisateursPointes(Request $request)
