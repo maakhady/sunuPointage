@@ -1,6 +1,5 @@
 FROM php:8.3-fpm
 
-# Ajout de la variable PORT
 ENV PORT=10000
 
 # Installation des dépendances système
@@ -15,7 +14,8 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     pkg-config \
     libssl-dev \
-    nginx
+    nginx \
+    gettext-base
 
 # Installation de l'extension MongoDB
 RUN pecl install mongodb \
@@ -32,9 +32,8 @@ WORKDIR /var/www
 # Copier TOUT le code d'abord
 COPY . .
 
-# Copier et configurer nginx pour utiliser la variable PORT
-COPY docker/nginx/conf.d/app.conf /etc/nginx/conf.d/default.conf
-RUN sed -i "s/listen 80/listen \$PORT/g" /etc/nginx/conf.d/default.conf
+# Copier la configuration nginx template
+COPY docker/nginx/conf.d/app.conf /etc/nginx/conf.d/default.conf.template
 
 # Création du fichier .env pour la production
 RUN cp .env.example .env
