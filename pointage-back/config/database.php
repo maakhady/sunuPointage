@@ -47,16 +47,22 @@ return [
         //     ],
         // ],
 
+        // 'mongodb' => [
+        //     'driver' => 'mongodb',
+        //     'host' => env('DB_HOST', 'host.docker.internal'),
+        //     'port' => env('DB_PORT', 27017),
+        //     'database' => env('DB_DATABASE', 'pointage_db'),
+        //     'username' => env('DB_USERNAME', ''),
+        //     'password' => env('DB_PASSWORD', ''),
+        //     'options' => [
+        //         'database' => env('DB_AUTHENTICATION_DATABASE', 'admin'),
+        //     ],
+        // ],
+
         'mongodb' => [
             'driver' => 'mongodb',
-            'host' => env('DB_HOST', 'host.docker.internal'),
-            'port' => env('DB_PORT', 27017),
-            'database' => env('DB_DATABASE', 'pointage_db'),
-            'username' => env('DB_USERNAME', ''),
-            'password' => env('DB_PASSWORD', ''),
-            'options' => [
-                'database' => env('DB_AUTHENTICATION_DATABASE', 'admin'),
-            ],
+            'dsn' => env('MONGODB_URL', 'mongodb+srv://maakhady:mkhLdpro11!#@cluster0.ebvyp.mongodb.net'),
+            'database' => env('MONGODB_DATABASE', 'pointage_db'),
         ],
 
 
