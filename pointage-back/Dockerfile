@@ -46,9 +46,10 @@ RUN chown -R www-data:www-data storage bootstrap/cache \
 # Générer la clé d'application
 RUN php artisan key:generate --force
 
-# Script de démarrage
-RUN chmod +x start.sh
+# Configuration du script de démarrage
+COPY start.sh /var/www/start.sh
+RUN chmod +x /var/www/start.sh
 
 EXPOSE 80
 
-CMD ["/start.sh"]
+CMD ["/var/www/start.sh"]
