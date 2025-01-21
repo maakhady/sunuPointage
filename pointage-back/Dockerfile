@@ -26,25 +26,25 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# Copier les fichiers de configuration
-COPY composer.json composer.lock ./
+# Copier TOUT le code d'abord
+COPY . .
 
-# Copier la configuration nginx depuis le bon chemin
+# Copier la configuration nginx
 COPY docker/nginx/conf.d/app.conf /etc/nginx/conf.d/default.conf
 
 # Installation des dépendances
 RUN composer install --no-dev --optimize-autoloader
 
-# Copier le reste du code
-COPY . .
-
 # Permissions
 RUN chown -R www-data:www-data storage bootstrap/cache \
-    && chmod -R 775 storage bootstrap/cache
+    && chmod -R 775 storage bootstrap/cache \
+    && chmod +x artisan
+
+# Générer la clé d'application si nécessaire
+RUN php artisan key:generate --force
 
 # Script de démarrage
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
+RUN chmod +x start.sh
 
 EXPOSE 80
 
