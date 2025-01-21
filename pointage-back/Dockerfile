@@ -32,6 +32,9 @@ COPY . .
 # Copier la configuration nginx
 COPY docker/nginx/conf.d/app.conf /etc/nginx/conf.d/default.conf
 
+# Création du fichier .env pour la production
+RUN cp .env.example .env
+
 # Installation des dépendances
 RUN composer install --no-dev --optimize-autoloader
 
@@ -40,7 +43,7 @@ RUN chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache \
     && chmod +x artisan
 
-# Générer la clé d'application si nécessaire
+# Générer la clé d'application
 RUN php artisan key:generate --force
 
 # Script de démarrage
