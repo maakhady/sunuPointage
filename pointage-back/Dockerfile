@@ -11,7 +11,8 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libzip-dev \
     pkg-config \
-    libssl-dev
+    libssl-dev \
+    nginx
 
 # Installation de l'extension MongoDB
 RUN pecl install mongodb \
@@ -25,11 +26,26 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-COPY . /var/www/
+# Copier les fichiers de configuration
+COPY composer.json composer.lock ./
 
-RUN composer install
+# Copier la configuration nginx depuis le bon chemin
+COPY docker/nginx/conf.d/app.conf /etc/nginx/conf.d/default.conf
 
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+# Installation des dépendances
+RUN composer install --no-dev --optimize-autoloader
 
-# Exposer le port 9000
-EXPOSE 9000
+# Copier le reste du code
+COPY . .
+
+# Permissions
+RUN chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
+# Script de démarrage
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
+EXPOSE 80
+
+CMD ["/start.sh"]
