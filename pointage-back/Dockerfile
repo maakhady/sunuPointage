@@ -30,3 +30,6 @@ COPY . /var/www/
 RUN composer install
 
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
+# Exposer le port 9000
+EXPOSE 9000
