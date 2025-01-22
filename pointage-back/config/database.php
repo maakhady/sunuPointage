@@ -59,10 +59,10 @@ return [
         //     ],
         // ],
 
-       'mongodb' => [
+         'mongodb' => [
             'driver' => 'mongodb',
-            'dsn' => 'mongodb+srv://maakhady:mkhLdpro11@cluster0.ebvyp.mongodb.net/?retryWrites=true&w=majority',
-            'database' => 'pointage_db',
+            'dsn' => env('MONGO_URL'),
+            'database' => env('MONGO_DB_DATABASE'),
         ],
 
 
