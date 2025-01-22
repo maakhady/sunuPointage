@@ -50,7 +50,7 @@ return [
         'mongodb' => [
             'driver' => 'mongodb',
             'host' => env('MONGO_DB_HOST', 'mongodb'),
-            'port' => env('MONGO_DB_PORT', 27017),
+            'port' => env('MONGO_DB_PORT', 27018),
             'database' => env('MONGO_DB_DATABASE', 'pointage_db'),
             'options' => [
                 'database' => env('MONGO_DB_DATABASE', 'pointage_db')
