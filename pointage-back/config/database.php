@@ -58,16 +58,19 @@ return [
         //         'database' => env('DB_AUTHENTICATION_DATABASE', 'admin'),
         //     ],
         // ],
-        
+
         'mongodb' => [
             'driver' => 'mongodb',
-            'host' => 'cluster0.ebvyp.mongodb.net',
-            'port' => 27017,
-            'database' => 'pointage_db',
-            'username' => 'maakhady',
-            'password' => 'mkhLdpro11',
+            'host' => env('MONGO_DB_HOST', 'cluster0.ebvyp.mongodb.net'),
+            'port' => env('MONGO_DB_PORT', 27017),
+            'database' => env('MONGO_DB_DATABASE', 'pointage_db'),
+            'username' => env('MONGO_DB_USERNAME', 'maakhady'),
+            'password' => env('MONGO_DB_PASSWORD', 'mkhLdpro11'),
             'options' => [
-                'database' => 'admin'
+                'authSource' => env('DB_AUTHENTICATION_DATABASE', 'admin'),
+                'appname' => 'MongoDB',
+                'retryWrites' => true,
+                'ssl' => true
             ],
         ],
 
