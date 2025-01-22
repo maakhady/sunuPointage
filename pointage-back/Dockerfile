@@ -1,7 +1,9 @@
+# Première étape : PHP et dépendances
 FROM php:8.3-fpm
 
-# Installation des dépendances système
+# Installation Nginx et autres dépendances
 RUN apt-get update && apt-get install -y \
+    nginx \
     git \
     curl \
     libpng-dev \
@@ -27,6 +29,18 @@ WORKDIR /var/www
 
 COPY . /var/www/
 
+# Copier la configuration Nginx
+COPY docker/nginx/conf.d/app.conf /etc/nginx/conf.d/default.conf
+
 RUN composer install
 
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
+# Exposer le port
+EXPOSE 80
+
+# Script de démarrage
+COPY docker/start.sh /usr/local/bin/start
+RUN chmod +x /usr/local/bin/start
+
+CMD ["/usr/local/bin/start"]
