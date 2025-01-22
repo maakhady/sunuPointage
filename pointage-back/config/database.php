@@ -59,14 +59,10 @@ return [
         //     ],
         // ],
 
-        'mongodb' => [
+       'mongodb' => [
             'driver' => 'mongodb',
-            'dsn' => sprintf(
-                'mongodb+srv://%s:%s@cluster0.ebvyp.mongodb.net/?retryWrites=true&w=majority',
-                env('MONGO_DB_USERNAME'),
-                env('MONGO_DB_PASSWORD')
-            ),
-            'database' => env('MONGO_DB_DATABASE', 'pointage_db'),
+            'dsn' => 'mongodb+srv://maakhady:mkhLdpro11@cluster0.ebvyp.mongodb.net/?retryWrites=true&w=majority',
+            'database' => 'pointage_db',
         ],
 
 
