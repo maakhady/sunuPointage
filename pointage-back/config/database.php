@@ -61,12 +61,8 @@ return [
 
          'mongodb' => [
             'driver' => 'mongodb',
-            'dsn' => 'mongodb+srv://'.env('MONGO_DB_USERNAME').':'.env('MONGO_DB_PASSWORD').'@cluster0.ebvyp.mongodb.net/?retryWrites=true&w=majority',
-            'database' => env('MONGO_DB_DATABASE'),
-            'options' => [
-                'appName' => 'Pointage App',
-                'retryWrites' => true,
-            ],
+            'dsn' => 'mongodb+srv://maakhady:1WEEGNlJsBjZDYkb@cluster0.ebvyp.mongodb.net/pointage_db?retryWrites=true&w=majority',
+            'database' => 'pointage_db',
         ],
 
 
