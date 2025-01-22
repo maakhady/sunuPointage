@@ -61,15 +61,9 @@ return [
 
         'mongodb' => [
             'driver' => 'mongodb',
-            'host' => env('MONGO_DB_HOST', 'cluster0.ebvyp.mongodb.net'),
-            'port' => env('MONGO_DB_PORT', 27017),
+            'dsn' => 'mongodb+srv://' . env('MONGO_DB_USERNAME') . ':' . env('MONGO_DB_PASSWORD') . '@cluster0.ebvyp.mongodb.net/?retryWrites=true&w=majority',
             'database' => env('MONGO_DB_DATABASE', 'pointage_db'),
-            'username' => env('MONGO_DB_USERNAME', 'maakhady'),
-            'password' => env('MONGO_DB_PASSWORD', 'mkhLdpro11'),
             'options' => [
-                'authSource' => env('DB_AUTHENTICATION_DATABASE', 'admin'),
-                'appname' => 'MongoDB',
-                'retryWrites' => true,
                 'ssl' => true
             ],
         ],
