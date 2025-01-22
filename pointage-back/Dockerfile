@@ -49,6 +49,9 @@ RUN chown -R www-data:www-data storage bootstrap/cache \
 # Générer la clé d'application
 RUN php artisan key:generate --force
 
+# Générer la clé JWT
+RUN php artisan jwt:secret --force
+
 # Configuration du script de démarrage
 COPY start.sh /var/www/start.sh
 RUN chmod +x /var/www/start.sh
