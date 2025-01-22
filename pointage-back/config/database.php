@@ -61,11 +61,12 @@ return [
 
         'mongodb' => [
             'driver' => 'mongodb',
-            'dsn' => 'mongodb+srv://' . env('MONGO_DB_USERNAME') . ':' . env('MONGO_DB_PASSWORD') . '@cluster0.ebvyp.mongodb.net/?retryWrites=true&w=majority',
+            'dsn' => sprintf(
+                'mongodb+srv://%s:%s@cluster0.ebvyp.mongodb.net/?retryWrites=true&w=majority',
+                env('MONGO_DB_USERNAME'),
+                env('MONGO_DB_PASSWORD')
+            ),
             'database' => env('MONGO_DB_DATABASE', 'pointage_db'),
-            'options' => [
-                'ssl' => true
-            ],
         ],
 
 
