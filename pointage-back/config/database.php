@@ -58,11 +58,17 @@ return [
         //         'database' => env('DB_AUTHENTICATION_DATABASE', 'admin'),
         //     ],
         // ],
-
-      'mongodb' => [
+        
+        'mongodb' => [
             'driver' => 'mongodb',
-            'dsn' => env('MONGODB_URL'),
+            'host' => 'cluster0.ebvyp.mongodb.net',
+            'port' => 27017,
             'database' => 'pointage_db',
+            'username' => 'maakhady',
+            'password' => 'mkhLdpro11',
+            'options' => [
+                'database' => 'admin'
+            ],
         ],
 
 
