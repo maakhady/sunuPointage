@@ -1,44 +1,64 @@
 version: '3'
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: pointage_app
-    restart: unless-stopped
-    working_dir: /var/www/
-    volumes:
-      - ./:/var/www
-    environment:
-      MONGO_DB_HOST: host.docker.internal
-      MONGO_DB_PORT: 27017
-      MONGO_DB_DATABASE: pointage_db
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - pointage_net
+ app:
+   build:
+     context: .
+     dockerfile: Dockerfile
+   container_name: pointage_app
+   restart: unless-stopped
+   working_dir: /var/www/
+   volumes:
+     - ./:/var/www
+   environment:
+     MONGO_DB_HOST: mongodb
+     MONGO_DB_PORT: 27017
+     MONGO_DB_DATABASE: pointage_db
+   networks:
+     - pointage_net
+   depends_on:
+     - mongodb
 
-  nginx:
-    image: nginx:alpine
-    container_name: pointage_nginx
-    restart: unless-stopped
-    ports:
-      - "8000:80"
-    volumes:
-      - ./:/var/www
-      - ./docker/nginx/conf.d:/etc/nginx/conf.d/
-    networks:
-      - pointage_net
+ nginx:
+   image: nginx:alpine
+   container_name: pointage_nginx
+   restart: unless-stopped
+   ports:
+     - "8000:80"
+   volumes:
+     - ./:/var/www
+     - ./docker/nginx/conf.d:/etc/nginx/conf.d/
+   networks:
+     - pointage_net
+   depends_on:
+     - app
 
-  mailhog:
-    image: mailhog/mailhog
-    container_name: pointage_mailhog
-    ports:
-      - "1025:1025"
-      - "8025:8025"
-    networks:
-      - pointage_net
+ mailhog:
+   image: mailhog/mailhog
+   container_name: pointage_mailhog
+   ports:
+     - "1025:1025"
+     - "8025:8025"
+   networks:
+     - pointage_net
+
+ mongodb:
+   build:
+     context: ./docker/mongodb
+     dockerfile: Dockerfile
+   container_name: pointage_mongodb
+   restart: unless-stopped
+   ports:
+     - "27017:27017"
+   volumes:
+     - mongodb_data:/data/db
+     - ./docker/mongodb/mongod.conf:/etc/mongod.conf
+   networks:
+     - pointage_net
+
+volumes:
+ mongodb_data:
+   driver: local
 
 networks:
-  pointage_net:
-    driver: bridge
+ pointage_net:
+   driver: bridge
