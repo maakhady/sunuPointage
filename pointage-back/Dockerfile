@@ -33,7 +33,12 @@ WORKDIR /var/www
 COPY . .
 
 # Copier la configuration nginx
-COPY docker/nginx/conf.d/app.conf /etc/nginx/conf.d/default.conf.template
+COPY docker/nginx/conf.d/app.conf /etc/nginx/conf.d/app.conf
+
+# Création des répertoires nginx
+RUN mkdir -p /var/log/nginx && \
+    touch /var/log/nginx/error.log && \
+    touch /var/log/nginx/access.log
 
 # Création du fichier .env pour la production
 RUN cp .env.example .env
