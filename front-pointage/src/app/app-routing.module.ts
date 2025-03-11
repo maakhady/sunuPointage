@@ -19,11 +19,11 @@ const routes: Routes = [
         pathMatch: 'full'
       },
 
-      {
-        path: 'dashboard/default',
-        loadComponent: () => import('./demo/default/dashboard/dashboard.component').then((c) => c.DefaultComponent),
-        canActivate: [AuthGuard]
-      },
+      // {
+      //   path: 'dashboard/default',
+      //   loadComponent: () => import('./demo/default/dashboard/dashboard.component').then((c) => c.DefaultComponent),
+      //   canActivate: [AuthGuard]
+      // },
       {
         path: 'cohortes',
         loadComponent: () => import('./demo/cohortes/cohortes.component').then((c) => c.CohortesComponent),
