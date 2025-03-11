@@ -62,7 +62,7 @@ deleteEmploye(id: string): Observable<any> {
 
 // Dans departement.service.ts
 updateEmploye(id: string, formData: FormData): Observable<any> {
-  return this.http.put<{ message: string; data: any }>(`${this.apiUrl}/utilisateurs/modifierUser/${id}`, formData)
+  return this.http.put<{ message: string; data: any }>(`${this.apiUrl}/utilisateurs/${id}`, formData)
     .pipe(
       map(response => response.data)
     );

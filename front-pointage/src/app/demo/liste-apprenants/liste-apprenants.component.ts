@@ -2,10 +2,13 @@ import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { CommonModule } from '@angular/common';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Subscription } from 'rxjs';
 import * as bootstrap from 'bootstrap';
 import { FormsModule, FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { AssignationService } from 'src/app/services/assignation.service';
+
+
 
 interface Apprenant {
   statut: any;
@@ -49,17 +52,22 @@ export class ListeApprenantsComponent implements OnInit {
   selectedPhoto: File | null = null;
   selectedApprenant: Apprenant | null = null;
 
+  private subscriptions: Subscription[] = [];
+  scannedCardId: string = '';
+
   // Pagination
   currentPage: number = 1;
   itemsPerPage: number = 5;
   errorMessage: any;
   apiErrors: any;
 
+
   constructor(
     private route: ActivatedRoute,
     private apiService: ApiService,
     private router: Router,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private assignationService: AssignationService
   ) {
     this.apprenantForm = this.fb.group({
       nom: ['', Validators.required],
@@ -82,10 +90,86 @@ export class ListeApprenantsComponent implements OnInit {
       photo: [null] // Aucun validateur pour l'instant
     });
 
+
+    
+
     this.cohorteId = this.route.snapshot.params['id'];
     this.loadApprenants();
 
+
+
+
+    
+
+ // Écoute des scans de carte
+    this.subscriptions.push(
+      this.assignationService.cardId$.subscribe(
+        cardId => {
+          if (cardId) {
+            this.scannedCardId = cardId;
+            this.errorMessage = null;
+            const cardInput = document.getElementById('cardIdInput') as HTMLInputElement;
+            if (cardInput) {
+              cardInput.value = cardId;
+            }
+          }
+        }
+      )
+    );
+
+    // Écoute des événements d'assignation réussie
+    this.subscriptions.push(
+      this.assignationService.getCardAssignedEvents().subscribe(
+        response => {
+          this.successMessage = response.message;
+          this.loadApprenants();
+          setTimeout(() => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('assignCardModal'));
+            modal?.hide();
+            this.resetAssignationForm();
+          }, 2000);
+        }
+      )
+    );
+
+    // Écoute des erreurs d'assignation
+    this.subscriptions.push(
+      this.assignationService.getCardAssignmentErrors().subscribe(
+        error => {
+          this.errorMessage = error.message;
+        }
+      )
+    );
+    
+
+
+
+
+
   }
+
+
+
+ 
+   resetAssignationForm(): void {
+     this.scannedCardId = '';
+     this.errorMessage = null;
+     this.successMessage = null;
+     const cardInput = document.getElementById('cardIdInput') as HTMLInputElement;
+     if (cardInput) {
+       cardInput.value = '';
+     }
+   }
+ 
+   resetCardScan(): void {
+     this.scannedCardId = '';
+     const cardInput = document.getElementById('cardIdInput') as HTMLInputElement;
+     if (cardInput) {
+       cardInput.value = '';
+     }
+   }
+ 
+
 
 
   getControl(controlName: string) {
@@ -377,10 +461,6 @@ export class ListeApprenantsComponent implements OnInit {
   };
 
 
-
-
-
-
   onFileSelected(event: any): void {
     const file = event.target.files[0];
     if (file) {
@@ -428,7 +508,7 @@ export class ListeApprenantsComponent implements OnInit {
 
 
 
-
+  
   updateStatus(apprenant: Apprenant): void {
     if (!apprenant || !apprenant.id) {
       console.error('Apprenant ou ID non défini');
@@ -456,6 +536,9 @@ export class ListeApprenantsComponent implements OnInit {
 
 
 
+
+
+
   assignCardId(apprenant: Apprenant): void {
 
     // Logique pour assigner un cardId à l'apprenant
@@ -467,11 +550,6 @@ export class ListeApprenantsComponent implements OnInit {
     this.selectedApprenant = apprenant;
     modal.show();
   }
-
-
-
-
-
 
 
 
@@ -512,6 +590,10 @@ export class ListeApprenantsComponent implements OnInit {
       }
     }
   }
+
+
+
+  
 
 
 }

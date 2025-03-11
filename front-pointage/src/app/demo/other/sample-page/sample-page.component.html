@@ -9,17 +9,17 @@
       <div class="row" *ngIf="employe">
         <!-- Photo de l'employé -->
         <div class="col-md-4 text-center mb-4">
-          <img [src]="employe.photo || 'assets/images/default-avatar.png'"
+          <img [src]="employe.photo ? getPhotoUrl(employe.photo) : 'assets/images/default-avatar.png'"
                class="img-fluid rounded-circle mb-3"
                alt="Photo de l'employé"
-               style="max-width: 200px;">
+               style="max-width: 400px; height: 400px; object-fit: cover;">
         </div>
 
         <!-- Informations de l'employé -->
         <div class="col-md-8">
           <div class="row mb-3">
             <div class="col-sm-6">
-              <h3 class="text-primary">{{employe.prenom}} {{employe.nom}}</h3>
+              <h2 class="text-primary">{{employe.prenom}} {{employe.nom}}</h2>
               <p class="text-muted mb-0" *ngIf="employe.departement_id">{{employe.fonction}}</p>
             </div>
             <div class="col-sm-6 text-end">

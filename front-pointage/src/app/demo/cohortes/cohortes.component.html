@@ -1,6 +1,6 @@
-<!-- <ul class="list-unstyled">
+ <ul class="list-unstyled">
   <li class="pc-h-item d-none d-md-inline-flex">
-    <i class="search f-12" antIcon type="search" theme="outline"></i>
+    <i class="search f-12 m-3" antIcon type="search" theme="outline"></i>
     <input
       type="search"
       [(ngModel)]="searchQuery"
@@ -9,7 +9,7 @@
       class="form-control"
     >
   </li>
-</ul> -->
+</ul> 
 
 <div class="ajout">
   <button type="button" class="btn btn-primary m-3" data-bs-toggle="modal" data-bs-target="#exampleModal">
@@ -29,11 +29,11 @@
         <form [formGroup]="cohorteForm" (ngSubmit)="onSubmit()">
           <div class="mb-3">
             <label for="nom" class="form-label">Nom de la cohorte</label>
-            <input type="text" class="form-control" formControlName="nom">
+            <input type="text" class="form-control" formControlName="nom"  placeholder="Nom de la cohorte">
           </div>
           <div class="mb-3">
             <label for="annee_scolaire" class="form-label">Année scolaire</label>
-            <input type="text" class="form-control" formControlName="annee_scolaire">
+            <input type="text" class="form-control" formControlName="annee_scolaire"  placeholder="2025-2026" >
           </div>
           <div class="mb-3">
             <label for="promo" class="form-label">Promo</label>

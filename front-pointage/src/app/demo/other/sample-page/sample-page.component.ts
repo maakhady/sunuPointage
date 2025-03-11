@@ -3,10 +3,17 @@ import { ActivatedRoute } from '@angular/router';
 import { DepartementService } from '../../../services/departement.service';
 import { SharedModule } from 'src/app/theme/shared/shared.module';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 
 interface ApiResponse {
   data: Employe;
   status: boolean;
+}
+
+interface Photo {
+  data: string;
+  mime_type: string;
+  name: string;
 }
 
 interface Employe {
@@ -20,7 +27,7 @@ interface Employe {
   fonction: string;
   departement_id: string;
   cohorte_id: string;
-  photo: string | null;
+  photo: Photo | null;
   status: string;
   type: string;
   selected?: boolean;
@@ -33,8 +40,7 @@ interface Employe {
     nom: string;
     annee_scolaire: string;
     promo: number;
-   
-  } ;
+  };
   pointages: {
     _id: string;
     user_id: string;
@@ -48,8 +54,6 @@ interface Employe {
   }[];
 }
 
-
-
 @Component({
   selector: 'app-sample-page',
   standalone: true,
@@ -60,11 +64,12 @@ interface Employe {
 export default class SamplePageComponent implements OnInit {
   employe: Employe | null = null;
   loading: boolean = true;
-pointage: any;
+  pointage: any;
 
   constructor(
     private route: ActivatedRoute,
-    private departementService: DepartementService
+    private departementService: DepartementService,
+    private sanitizer: DomSanitizer
   ) {}
 
   ngOnInit(): void {
@@ -72,6 +77,15 @@ pointage: any;
     if (employeId) {
       this.loadEmployeDetails(employeId);
     }
+  }
+
+  getPhotoUrl(photo: Photo | null): SafeUrl {
+    if (!photo || !photo.data) {
+      return 'assets/images/default-avatar.png';
+    }
+
+    const base64Image = `data:${photo.mime_type};base64,${photo.data}`;
+    return this.sanitizer.bypassSecurityTrustUrl(base64Image);
   }
 
   loadEmployeDetails(id: string): void {

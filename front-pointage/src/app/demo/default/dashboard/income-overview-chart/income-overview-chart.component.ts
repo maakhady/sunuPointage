@@ -74,7 +74,7 @@ export class IncomeOverviewChartComponent implements OnInit {
         width: 2
       },
       xaxis: {
-        categories: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'],
+        categories: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
         axisBorder: {
           show: false
         },
@@ -99,4 +99,5 @@ export class IncomeOverviewChartComponent implements OnInit {
       }
     };
   }
+  
 }

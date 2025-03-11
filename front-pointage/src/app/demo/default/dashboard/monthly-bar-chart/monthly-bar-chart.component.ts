@@ -60,11 +60,11 @@ export class MonthlyBarChartComponent implements OnInit {
       colors: ['#1677ff', '#0050b3'],
       series: [
         {
-          name: 'Page Views',
+          name: 'Apprenants',
           data: [0, 86, 28, 115, 48, 210, 136]
         },
         {
-          name: 'Sessions',
+          name: 'Employes',
           data: [0, 43, 14, 56, 24, 105, 68]
         }
       ],
@@ -114,6 +114,10 @@ export class MonthlyBarChartComponent implements OnInit {
     };
   }
 
+
+
+
+
   // public method
   toggleActive(value: string) {
     this.chartOptions.series = [
@@ -126,11 +130,13 @@ export class MonthlyBarChartComponent implements OnInit {
         data: value === 'month' ? [110, 60, 150, 35, 60, 36, 26, 45, 65, 52, 53, 41] : [11, 32, 45, 32, 34, 52, 41]
       }
     ];
+
+
     const xaxis = { ...this.chartOptions.xaxis };
     xaxis.categories =
       value === 'month'
-        ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-        : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        ? ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jui', 'Juil', 'Aout', 'Sep', 'Oct', 'Nov', 'Dec']
+        : ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
     xaxis.tickAmount = value === 'month' ? 11 : 7;
     this.chartOptions = { ...this.chartOptions, xaxis };
     if (value === 'month') {
@@ -141,4 +147,6 @@ export class MonthlyBarChartComponent implements OnInit {
       document.querySelector('.chart-income.month')?.classList.remove('active');
     }
   }
+
+  
 }

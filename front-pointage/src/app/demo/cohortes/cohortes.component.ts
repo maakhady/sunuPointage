@@ -136,6 +136,9 @@ export class CohortesComponent implements OnInit {
     }
   }
 
+
+  
+
   onSearch(): void {
     console.log('Recherche en cours pour:', this.searchQuery);
     this.filteredCohortes = this.cohortes.filter(cohorte =>
@@ -145,6 +148,10 @@ export class CohortesComponent implements OnInit {
     this.currentPage = 1; // Réinitialiser la page actuelle lors de la recherche
     console.log('Cohortes filtrées:', this.filteredCohortes);
   }
+
+
+
+
 
   getNombreApprenants(cohorte: Cohorte): number {
     return cohorte.apprenants?.length || 0;
@@ -162,24 +169,21 @@ export class CohortesComponent implements OnInit {
 
 
 
-
-
-
   cohorteToDelete: any = null;
 
   deleteCohorte(id: string): void {
     const cohorte = this.cohortes.find(c => c.id === id);
-    
+
     if (!cohorte) {
       alert('Cohorte non trouvée');
       return;
     }
-    
+
     if (this.getNombreApprenants(cohorte) > 0) {
       alert('Impossible de supprimer une cohorte qui contient des apprenants');
       return;
     }
-    
+
     // Stocke la cohorte à supprimer et ouvre le modal
     this.cohorteToDelete = cohorte;
     const modal = new bootstrap.Modal(document.getElementById('deleteCohorteModal'));
@@ -193,7 +197,7 @@ export class CohortesComponent implements OnInit {
           // Ferme le modal
           const modal = bootstrap.Modal.getInstance(document.getElementById('deleteCohorteModal'));
           modal?.hide();
-          
+
           this.loadCohortes();
           this.cohorteToDelete = null;
         },
