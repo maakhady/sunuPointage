@@ -296,8 +296,8 @@ class UtilisateurController extends Controller
 
             // Validation de l'en-tête (Important)
             $expectedHeaders = [ // Ajustez selon vos besoins
-                'nom', 'prenom', 'email', 'telephone', 
-                'matricule',  'adresse',
+                'nom', 'prenom', 'email', 'telephone','photo', 
+                'matricule',  'adresse', 'type',
             ];
 
             if (array_diff($expectedHeaders, $headers) || array_diff($headers, $expectedHeaders)) {
@@ -317,6 +317,7 @@ class UtilisateurController extends Controller
                         'photo' => 'nullable|string|max:255',
                         'matricule' => 'nullable|string|max:255',
                         'adresse' => 'nullable|string|max:255',
+                        'type' => 'nullable|string|max:255',
 
 
                     ]);
