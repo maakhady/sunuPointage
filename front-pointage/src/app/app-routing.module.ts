@@ -44,11 +44,11 @@ const routes: Routes = [
         loadComponent: () => import('./demo/departements/departements.component').then((c) => c.DepartementsComponent),
         canActivate: [AuthGuard]
       },
-      {
-        path: 'historique',
-        loadComponent: () => import('./demo/historique/historique.component').then((c) => c.HistoriqueComponent),
-        canActivate: [AuthGuard]
-      },
+      // {
+      //   path: 'historique',
+      //   loadComponent: () => import('./demo/historique/historique.component').then((c) => c.HistoriqueComponent),
+      //   canActivate: [AuthGuard]
+      // },
       {
         path: 'pointage',
         loadComponent: () => import('./demo/pointage/pointage.component').then((c) => c.PointageComponent),

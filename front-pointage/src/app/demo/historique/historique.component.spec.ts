@@ -4,7 +4,7 @@ import { HistoriqueComponent } from './historique.component';
 
 describe('HistoriqueComponent', () => {
   let component: HistoriqueComponent;
-  let fixture: ComponentFixture<HistoriqueComponent>;
+  let fixture: ComponentFixture<Component>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({

@@ -61,15 +61,15 @@ export const NavigationItems: NavigationItem[] = [
         icon: 'idcard',
         breadcrumbs: false
       },
-      {
-        id: 'default',
-        title: 'Historique',
-        type: 'item',
-        classes: 'nav-item',
-        url: '/historique',
-        icon: 'profile',
-        breadcrumbs: false
-      }
+      // {
+      //   id: 'default',
+      //   title: 'Historique',
+      //   type: 'item',
+      //   classes: 'nav-item',
+      //   url: '/historique',
+      //   icon: 'profile',
+      //   breadcrumbs: false
+      // }
     ]
   // },
   // {
