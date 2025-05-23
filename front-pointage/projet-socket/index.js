@@ -19,7 +19,7 @@ const io = new Server(server, {
 
 // Configuration du port série
 const serialPort = new SerialPort({
-  path: '/dev/ttyUSB0', // Chemin du port
+  path: '/dev/ttyUSB1', // Chemin du port
   baudRate: 9600,
 });
 

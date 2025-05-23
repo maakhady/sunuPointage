@@ -75,7 +75,7 @@
             <th>Arrivée</th>
             <th>Départ</th>
             <th>Statut</th>
-            <th>Action</th>
+            <!-- <th>Action</th> -->
           </tr>
         </thead>
         <tbody>
@@ -95,12 +95,12 @@
                 {{ getStatusText(pointage) }}
               </span>
             </td>
-            <td>
+            <!-- <td> -->
               <!-- Bouton Congé avec style similaire -->
-              <button class="btn btn-sm btn-primary rounded-pill px-3"  (click)="openCongesModal(pointage.user._id)">
+              <!-- <button class="btn btn-sm btn-primary rounded-pill px-3"  (click)="openCongesModal(pointage.user._id)">
                 Congé
               </button>
-            </td>
+            </td>  -->
           </tr>
           <tr *ngIf="filteredPointages.length === 0">
             <td colspan="6" class="text-center py-4">

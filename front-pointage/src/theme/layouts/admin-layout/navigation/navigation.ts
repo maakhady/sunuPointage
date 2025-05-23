@@ -61,15 +61,15 @@ export const NavigationItems: NavigationItem[] = [
         icon: 'dashboard',
         breadcrumbs: false
       },
-      {
-        id: 'default',
-        title: 'Historique',
-        type: 'item',
-        classes: 'nav-item',
-        url: '/historique',
-        icon: 'dashboard',
-        breadcrumbs: false
-      }
+      // {
+      //   id: 'default',
+      //   title: 'Gestion Congé',
+      //   type: 'item',
+      //   classes: 'nav-item',
+      //   url: '/historique',
+      //   icon: 'dashboard',
+      //   breadcrumbs: false
+      // },
     ]
   // },
   // {
