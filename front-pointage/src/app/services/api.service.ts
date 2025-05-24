@@ -5,6 +5,7 @@ import { map } from 'rxjs/operators';
 
 import { Cohorte } from '../demo/cohortes/cohorte.model';  // Assurez-vous que ce chemin est correct
 import { Apprenant } from '../demo/liste-apprenants/ apprenant.model';
+// import { Apprenant } from '../demo/liste-apprenants/apprenant.model'; 
 
 
 
@@ -115,12 +116,33 @@ export class ApiService {
     }
 
 
-    updateApprenant(id: string, formData: FormData): Observable<any> {
-      const url = `${this.apiUrl}/utilisateurs/${id}`;
-      return this.http.put<{ status: boolean; message: string; data: any }>(url, formData).pipe(
-        map(response => response.data) // On extrait uniquement les données de l'utilisateur mises à jour.
-      );
+    // Méthode classique pour update sans photo (JSON)
+updateApprenant(id: string, apprenantData: any): Observable<any> {
+  return this.http.put(`${this.apiUrl}/utilisateurs/${id}`, apprenantData, {
+    headers: {
+      'Content-Type': 'application/json'
     }
+  }).pipe(
+    map((response: any) => response.data)
+  );
+}
+
+// ✅ NOUVELLE MÉTHODE pour FormData (avec photo)
+updateApprenantWithFormData(id: string, formData: FormData): Observable<any> {
+  return this.http.put(`${this.apiUrl}/utilisateurs/${id}`, formData).pipe(
+    map((response: any) => response.data)
+  );
+  
+  // Note: Pas de headers Content-Type pour FormData, le navigateur le gère automatiquement
+}
+
+// ✅ MÉTHODE CORRIGÉE pour contourner le problème Laravel avec PUT + FormData
+updateApprenantWithPhoto(id: string, formData: FormData): Observable<any> {
+  // 🔧 Utiliser POST avec _method=PUT pour contourner le problème Laravel
+  return this.http.post(`${this.apiUrl}/utilisateurs/${id}`, formData).pipe(
+    map((response: any) => response.data)
+  );
+}
 
     // Dans api.service.ts
     deleteApprenant(id: string): Observable<any> {

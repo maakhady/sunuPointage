@@ -17,3 +17,127 @@
     color: var(--bs-primary);
   }
 }
+
+
+.chart-income {
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  color: #6b7280;
+
+  &:hover {
+    background-color: #f3f4f6;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+  }
+
+  &.active {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);
+  }
+
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+.card {
+  border: none;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  
+  .card-body {
+    padding: 1.5rem;
+  }
+}
+
+// États de chargement et d'erreur
+.spinner-border {
+  width: 3rem;
+  height: 3rem;
+}
+
+.alert {
+  border-radius: 12px;
+  border: none;
+  
+  &.alert-warning {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+}
+
+// Statistiques
+.bg-success {
+  background-color: #10b981 !important;
+}
+
+.bg-warning {
+  background-color: #f59e0b !important;
+}
+
+.bg-danger {
+  background-color: #ef4444 !important;
+}
+
+.rounded {
+  border-radius: 8px !important;
+}
+
+// Animation pour l'icône de rafraîchissement
+.fa-spin {
+  animation: fa-spin 1s infinite linear;
+}
+
+@keyframes fa-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .chart-income {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .d-flex.gap-2 {
+    gap: 0.5rem !important;
+  }
+  
+  h5 {
+    font-size: 1rem;
+  }
+}
+
+// Amélioration de l'accessibilité
+.btn:focus,
+.chart-income:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+// Style personnalisé pour le graphique ApexCharts
+#chart {
+  .apexcharts-tooltip {
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .apexcharts-legend {
+    font-family: 'Inter', sans-serif;
+  }
+}

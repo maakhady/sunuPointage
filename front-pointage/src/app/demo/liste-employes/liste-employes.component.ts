@@ -46,6 +46,9 @@ export class ListeEmployesComponent implements OnInit, OnDestroy {
   selectedPhoto: File | null = null;
   selectedEmploye: Employe | null = null;
 
+  // Dans votre composant, ajoutez cette ligne avec vos autres propriétés
+showErrorMessage: boolean = false; // 👈 AJOUTER CETTE LIGNE
+
   // Assignation related
   private subscriptions: Subscription[] = [];
   scannedCardId: string = '';
@@ -472,48 +475,202 @@ export class ListeEmployesComponent implements OnInit, OnDestroy {
     });
   }
 
-  updateEmploye(): void {
-    if (this.employeForm.invalid || !this.selectedEmploye) {
-      this.employeForm.markAllAsTouched();
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('nom', this.employeForm.get('nom')?.value);
-    formData.append('prenom', this.employeForm.get('prenom')?.value);
-    formData.append('email', this.employeForm.get('email')?.value);
-    formData.append('telephone', this.employeForm.get('telephone')?.value);
-    formData.append('adresse', this.employeForm.get('adresse')?.value);
-    formData.append('fonction', this.employeForm.get('fonction')?.value);
-
-    if (this.selectedPhoto) {
-      formData.append('photo', this.selectedPhoto);
-    }
-    if (this.showPasswordField) {
-      formData.append('password', this.employeForm.get('password')?.value);
-    }
-
-    this.departementService.updateEmploye(this.selectedEmploye.id, formData).subscribe({
-      next: () => {
-        console.log('Employé modifié avec succès');
-        const modal = bootstrap.Modal.getInstance(document.getElementById('editEmployeModal'));
-        modal?.hide();
-        this.loadEmployes();
-        this.selectedEmploye = null;
-        this.selectedPhoto = null;
-        this.employeForm.reset();
-        this.apiErrors = {};
-      },
-      error: (err) => {
-        console.error('Erreur lors de la modification de l\'employé:', err);
-        if (err.error && err.error.errors) {
-          this.apiErrors = err.error.errors;
-        } else {
-          this.apiErrors = { general: ['Une erreur inconnue est survenue.'] };
-        }
-      }
-    });
+updateEmploye(): void {
+  if (this.employeForm.invalid || !this.selectedEmploye) {
+    this.employeForm.markAllAsTouched();
+    return;
   }
+
+  // ✅ Créer un objet avec tous les champs possibles
+  const employeData: any = {
+    nom: this.employeForm.get('nom')?.value?.trim(),
+    prenom: this.employeForm.get('prenom')?.value?.trim(),
+    email: this.employeForm.get('email')?.value?.trim(),
+    telephone: this.employeForm.get('telephone')?.value?.trim(),
+    adresse: this.employeForm.get('adresse')?.value?.trim(),
+    fonction: this.employeForm.get('fonction')?.value
+  };
+
+  // ✅ Maintenant on peut ajouter le mot de passe
+  if (this.showPasswordField && this.employeForm.get('password')?.value) {
+    employeData.password = this.employeForm.get('password')?.value;
+  }
+  
+  console.log('Données JSON envoyées:', employeData);
+
+  this.departementService.updateEmploye(this.selectedEmploye.id, employeData).subscribe({
+    next: (response) => {
+      console.log('Réponse:', response);
+      
+      // Mettre à jour la liste
+      const index = this.employes.findIndex(e => e.id === this.selectedEmploye!.id);
+      if (index !== -1) {
+        this.employes[index] = { ...this.employes[index], ...response };
+        this.filteredEmployes = [...this.employes];
+      }
+      
+      // Fermer modal et nettoyer
+      const modal = bootstrap.Modal.getInstance(document.getElementById('editEmployeModal'));
+      modal?.hide();
+      this.selectedEmploye = null;
+      
+      this.successMessage = 'Employé modifié avec succès';
+      this.showSuccessMessage = true;
+      setTimeout(() => this.showSuccessMessage = false, 3000);
+    },
+    error: (err) => {
+      console.error('Erreur:', err);
+      if (err.error && err.error.errors) {
+        this.apiErrors = err.error.errors;
+      }
+    }
+  });
+}
+
+
+updateEmployeProfile(): void {
+  if (this.employeForm.invalid || !this.selectedEmploye) {
+    this.employeForm.markAllAsTouched();
+    return;
+  }
+
+  // ✅ Vérifier si une photo est sélectionnée
+  if (this.selectedPhoto) {
+    console.log('=== MODIFICATION AVEC PHOTO ===');
+    this.updateEmployeWithPhoto();
+  } else {
+    console.log('=== MODIFICATION SANS PHOTO ===');
+    this.updateEmployeWithoutPhoto();
+  }
+}
+
+// 🖼️ Méthode pour update AVEC photo (FormData)
+private updateEmployeWithPhoto(): void {
+  const formData = new FormData();
+  
+  // Ajouter tous les champs texte
+  formData.append('nom', this.employeForm.get('nom')?.value?.trim() || '');
+  formData.append('prenom', this.employeForm.get('prenom')?.value?.trim() || '');
+  formData.append('email', this.employeForm.get('email')?.value?.trim() || '');
+  formData.append('telephone', this.employeForm.get('telephone')?.value?.trim() || '');
+  formData.append('adresse', this.employeForm.get('adresse')?.value?.trim() || '');
+  formData.append('fonction', this.employeForm.get('fonction')?.value || '');
+  
+  // Mot de passe si nécessaire
+  if (this.showPasswordField && this.employeForm.get('password')?.value) {
+    formData.append('password', this.employeForm.get('password')?.value);
+  }
+  
+  // 🖼️ Ajouter la photo
+  if (this.selectedPhoto) {
+    formData.append('photo', this.selectedPhoto, this.selectedPhoto.name);
+  }
+  
+  // 🔧 IMPORTANT: Ajouter _method=PUT pour Laravel
+  formData.append('_method', 'PUT');
+  
+  console.log('=== DEBUG PHOTO ===');
+  console.log('selectedPhoto:', this.selectedPhoto);
+  console.log('selectedPhoto name:', this.selectedPhoto?.name);
+  console.log('selectedPhoto size:', this.selectedPhoto?.size);
+  console.log('selectedPhoto type:', this.selectedPhoto?.type);
+  
+  console.log('=== CONTENU FORMDATA ===');
+  formData.forEach((value, key) => {
+    if (value instanceof File) {
+      console.log(`FormData ${key}:`, value, '(File object)');
+    } else {
+      console.log(`FormData ${key}:`, value);
+    }
+  });
+  
+  console.log('Envoi avec FormData (photo incluse)');
+  
+  // 🚀 Appel API avec FormData
+  this.departementService.updateEmployeWithPhoto(this.selectedEmploye!.id, formData).subscribe({
+    next: (response) => {
+      console.log('=== RÉPONSE SERVEUR COMPLÈTE ===');
+      console.log('Response brute:', response);
+      console.log('Response.photo:', response.photo);
+      
+      this.handleUpdateSuccess(response);
+    },
+    error: (err) => {
+      console.error('❌ Erreur update avec photo:', err);
+      this.handleUpdateError(err);
+    }
+  });
+}
+
+// 📝 Méthode pour update SANS photo (JSON)
+private updateEmployeWithoutPhoto(): void {
+  const employeData: any = {
+    nom: this.employeForm.get('nom')?.value?.trim(),
+    prenom: this.employeForm.get('prenom')?.value?.trim(),
+    email: this.employeForm.get('email')?.value?.trim(),
+    telephone: this.employeForm.get('telephone')?.value?.trim(),
+    adresse: this.employeForm.get('adresse')?.value?.trim(),
+    fonction: this.employeForm.get('fonction')?.value
+  };
+
+  if (this.showPasswordField && this.employeForm.get('password')?.value) {
+    employeData.password = this.employeForm.get('password')?.value;
+  }
+  
+  console.log('Données JSON envoyées:', employeData);
+  
+  this.departementService.updateEmploye(this.selectedEmploye!.id, employeData).subscribe({
+    next: (response) => {
+      this.handleUpdateSuccess(response);
+    },
+    error: (err) => {
+      this.handleUpdateError(err);
+    }
+  });
+}
+
+// 🎉 Gérer le succès
+private handleUpdateSuccess(response: any): void {
+  console.log('✅ Mise à jour réussie:', response);
+  
+  // Mettre à jour la liste locale
+  const index = this.employes.findIndex(e => e.id === this.selectedEmploye!.id);
+  if (index !== -1) {
+    console.log('Employé AVANT mise à jour:', this.employes[index]);
+    
+    // Fusionner les nouvelles données
+    this.employes[index] = { ...this.employes[index], ...response };
+    
+    console.log('Employé APRÈS mise à jour:', this.employes[index]);
+    
+    this.filteredEmployes = [...this.employes];
+  }
+  
+  // Fermer modal et nettoyer
+  const modal = bootstrap.Modal.getInstance(document.getElementById('editEmployeModal'));
+  modal?.hide();
+  this.selectedEmploye = null;
+  this.selectedPhoto = null; // 🧹 Nettoyer la photo
+  
+  // Message de succès
+  this.successMessage = 'Profil modifié avec succès';
+  this.showSuccessMessage = true;
+  setTimeout(() => this.showSuccessMessage = false, 3000);
+}
+
+// ❌ Gérer les erreurs
+private handleUpdateError(err: any): void {
+  console.error('❌ Erreur lors de la mise à jour:', err);
+  
+  if (err.error && err.error.errors) {
+    this.apiErrors = err.error.errors;
+  } else if (err.error && err.error.message) {
+    // Afficher le message d'erreur du serveur
+    this.errorMessage = err.error.message;
+    this.showErrorMessage = true;
+    setTimeout(() => this.showErrorMessage = false, 5000);
+  }
+}
 
   getControl(controlName: string) {
     return this.employeForm.get(controlName);

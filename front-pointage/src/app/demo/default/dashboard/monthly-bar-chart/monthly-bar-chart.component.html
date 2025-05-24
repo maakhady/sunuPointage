@@ -1,13 +1,59 @@
 <div class="d-flex align-items-center justify-content-between mb-3">
-  <h5 class="mb-0">Graphe de absence et retard</h5>
-  <div class="d-flex gap-2 chart-income">
-    <div class="chart-income month" (click)="toggleActive('month')">Mois</div>
-    <div class="chart-income week" (click)="toggleActive('week')">Semaine</div>
+  <h5 class="mb-0">Graphique des présences, absences et retards</h5>
+  <div class="d-flex gap-2 align-items-center">
+    <!-- Bouton de rafraîchissement -->
+    <button 
+      class="btn btn-outline-primary btn-sm" 
+      (click)="refreshData()" 
+      [disabled]="isLoading"
+      title="Actualiser les données">
+      <i class="fas fa-sync-alt" [class.fa-spin]="isLoading"></i>
+    </button>
+    
+    <!-- Sélecteur de période -->
+    <div class="d-flex gap-2 chart-income">
+      <div 
+        class="chart-income month" 
+        (click)="toggleActive('month')"
+        [class.disabled]="isLoading">
+        Mois
+      </div>
+      <div 
+        class="chart-income week" 
+        (click)="toggleActive('week')"
+        [class.disabled]="isLoading">
+        Semaine
+      </div>
+    </div>
   </div>
 </div>
+
 <div class="card">
   <div class="card-body">
-    <div id="chart">
+    <!-- Indicateur de chargement -->
+    <div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="height: 450px;">
+      <div class="text-center">
+        <div class="spinner-border text-primary mb-3" role="status">
+          <span class="visually-hidden">Chargement...</span>
+        </div>
+        <p class="text-muted">Chargement des données...</p>
+      </div>
+    </div>
+
+    <!-- Message d'erreur -->
+    <div *ngIf="errorMessage && !isLoading" class="alert alert-warning d-flex align-items-center" style="height: 450px;">
+      <div class="text-center w-100">
+        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+        <h6>{{ errorMessage }}</h6>
+        <button class="btn btn-primary btn-sm mt-2" (click)="refreshData()">
+          <i class="fas fa-retry me-1"></i>
+          Réessayer
+        </button>
+      </div>
+    </div>
+
+    <!-- Graphique -->
+    <div *ngIf="!isLoading && !errorMessage" id="chart">
       <apx-chart
         [series]="chartOptions.series"
         [chart]="chartOptions.chart"
@@ -18,7 +64,53 @@
         [yaxis]="chartOptions.yaxis"
         [grid]="chartOptions.grid"
         [theme]="chartOptions.theme"
-      ></apx-chart>
+        [legend]="chartOptions.legend"
+        [tooltip]="chartOptions.tooltip">
+      </apx-chart>
+    </div>
+
+    <!-- Statistiques additionnelles (optionnel) -->
+    <div *ngIf="!isLoading && !errorMessage && chartOptions.series && chartOptions.series.length > 0" 
+         class="row mt-3">
+      <div class="col-md-4">
+        <div class="d-flex align-items-center">
+          <div class="bg-success rounded p-2 me-2">
+            <i class="fas fa-check text-white"></i>
+          </div>
+          <div>
+            <small class="text-muted">Total Présents</small>
+            <div class="fw-bold text-success">
+              {{ getTotalFromSeries('Présents') }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="d-flex align-items-center">
+          <div class="bg-warning rounded p-2 me-2">
+            <i class="fas fa-clock text-white"></i>
+          </div>
+          <div>
+            <small class="text-muted">Total Retards</small>
+            <div class="fw-bold text-warning">
+              {{ getTotalFromSeries('En retard') }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="d-flex align-items-center">
+          <div class="bg-danger rounded p-2 me-2">
+            <i class="fas fa-times text-white"></i>
+          </div>
+          <div>
+            <small class="text-muted">Total Absents</small>
+            <div class="fw-bold text-danger">
+              {{ getTotalFromSeries('Absents') }}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

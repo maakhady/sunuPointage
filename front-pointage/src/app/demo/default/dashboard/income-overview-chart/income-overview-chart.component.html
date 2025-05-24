@@ -1,17 +1,178 @@
-<h5 class="mb-3 mt-2">Pourcentage par cohorte</h5>
-<app-card [showHeader]="false">
-  <h6 class="mb-2 f-w-400 text-muted">Statistiques de la semaine</h6>
-  <h3 class="mb-3"></h3>
-  <apx-chart
-    [series]="chartOptions.series"
-    [chart]="chartOptions.chart"
-    [plotOptions]="chartOptions.plotOptions"
-    [dataLabels]="chartOptions.dataLabels"
-    [xaxis]="chartOptions.xaxis"
-    [colors]="chartOptions.colors"
-    [stroke]="chartOptions.stroke"
-    [yaxis]="chartOptions.yaxis"
-    [grid]="chartOptions.grid"
-    [tooltip]="chartOptions.tooltip"
-  ></apx-chart>
-</app-card>
+<!-- src/app/components/pointage-overview-chart/pointage-overview-chart.component.html -->
+
+<div class="pointage-chart-card">
+  <!-- En-tête de la carte -->
+  <div class="card-header">
+    <div class="header-info">
+      <div class="chart-title">
+        <i [class]="getChartIcon()"></i>
+        <h5>{{ getChartTitle() }}</h5>
+      </div>
+      <p class="chart-description">{{ getChartDescription() }}</p>
+    </div>
+
+    <!-- Menu des actions -->
+    <div class="header-actions">
+      <!-- Sélecteur de vue -->
+      <div class="view-selector">
+        <div class="btn-group btn-group-sm" role="group">
+          <button 
+            type="button" 
+            class="btn"
+            [class.btn-success]="viewType === 'presence'"
+            [class.btn-outline-success]="viewType !== 'presence'"
+            (click)="changeViewType('presence')"
+            [disabled]="isLoading"
+            title="Voir les présences">
+            <i class="fas fa-users"></i>
+          </button>
+          <button 
+            type="button" 
+            class="btn"
+            [class.btn-warning]="viewType === 'retards'"
+            [class.btn-outline-warning]="viewType !== 'retards'"
+            (click)="changeViewType('retards')"
+            [disabled]="isLoading"
+            title="Voir les retards">
+            <i class="fas fa-clock"></i>
+          </button>
+          <button 
+            type="button" 
+            class="btn"
+            [class.btn-danger]="viewType === 'absences'"
+            [class.btn-outline-danger]="viewType !== 'absences'"
+            (click)="changeViewType('absences')"
+            [disabled]="isLoading"
+            title="Voir les absences">
+            <i class="fas fa-user-times"></i>
+          </button>
+          <button 
+            type="button" 
+            class="btn"
+            [class.btn-primary]="viewType === 'all'"
+            [class.btn-outline-primary]="viewType !== 'all'"
+            (click)="changeViewType('all')"
+            [disabled]="isLoading"
+            title="Vue complète">
+            <i class="fas fa-chart-bar"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sélecteur de période -->
+      <div class="period-selector ms-2">
+        <div class="btn-group btn-group-sm" role="group">
+          <button 
+            type="button" 
+            class="btn"
+            [class.btn-primary]="period === 'week'"
+            [class.btn-outline-primary]="period !== 'week'"
+            (click)="changePeriod('week')"
+            [disabled]="isLoading">
+            Semaine
+          </button>
+          <button 
+            type="button" 
+            class="btn"
+            [class.btn-primary]="period === 'month'"
+            [class.btn-outline-primary]="period !== 'month'"
+            (click)="changePeriod('month')"
+            [disabled]="isLoading">
+            Mois
+          </button>
+        </div>
+      </div>
+
+      <!-- Bouton actualiser -->
+      <button 
+        class="btn btn-outline-secondary btn-sm ms-2" 
+        (click)="refresh()" 
+        [disabled]="isLoading"
+        title="Actualiser">
+        <i class="fas fa-sync-alt" [class.fa-spin]="isLoading"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Statistiques rapides (seulement pour vue 'all') -->
+  <div *ngIf="viewType === 'all' && !isLoading && !errorMessage" class="quick-stats">
+    <div class="row text-center">
+      <div class="col-3">
+        <div class="stat-item stat-success">
+          <div class="stat-value">{{ totalPresents }}</div>
+          <div class="stat-label">Présents</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-item stat-warning">
+          <div class="stat-value">{{ totalRetards }}</div>
+          <div class="stat-label">Retards</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-item stat-danger">
+          <div class="stat-value">{{ totalAbsents }}</div>
+          <div class="stat-label">Absents</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-item stat-info">
+          <div class="stat-value">{{ tauxPresence }}%</div>
+          <div class="stat-label">Présence</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Corps de la carte avec le graphique -->
+  <div class="card-body">
+    <!-- Indicateur de chargement -->
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="d-flex align-items-center justify-content-center" [style.height.px]="height">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Chargement...</span>
+        </div>
+        <span class="ms-2 text-muted">Chargement des données...</span>
+      </div>
+    </div>
+
+    <!-- Message d'erreur -->
+    <div *ngIf="errorMessage && !isLoading" class="error-container">
+      <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <div>
+          <strong>Aucune donnée disponible</strong><br>
+          <small>{{ errorMessage }}</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message aucune donnée -->
+    <div *ngIf="noData && !isLoading && !errorMessage" class="no-data-container">
+      <div class="text-center text-muted" [style.height.px]="height">
+        <div class="d-flex flex-column align-items-center justify-content-center h-100">
+          <i class="fas fa-chart-bar fa-3x mb-3 opacity-50"></i>
+          <h6>Aucune donnée pour cette période</h6>
+          <p class="small">Essayez de changer la période ou vérifiez les pointages</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Graphique -->
+    <div *ngIf="!isLoading && !errorMessage && !noData" class="chart-container">
+      <apx-chart
+        #chart
+        [series]="chartOptions.series"
+        [chart]="chartOptions.chart"
+        [dataLabels]="chartOptions.dataLabels"
+        [plotOptions]="chartOptions.plotOptions"
+        [xaxis]="chartOptions.xaxis"
+        [colors]="chartOptions.colors"
+        [stroke]="chartOptions.stroke"
+        [grid]="chartOptions.grid"
+        [yaxis]="chartOptions.yaxis"
+        [tooltip]="chartOptions.tooltip">
+      </apx-chart>
+    </div>
+  </div>
+</div>

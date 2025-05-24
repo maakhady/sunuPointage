@@ -54,6 +54,11 @@ export class ListeApprenantsComponent implements OnInit {
   itemsPerPage: number = 5;
   errorMessage: any;
   apiErrors: any;
+  showSuccessMessage: boolean = false;
+  showErrorMessage: boolean = false;
+  showPasswordField: boolean = false; // Pour afficher le champ mot de passe si nécessaire
+  successMessage: string = '';
+
 
   constructor(
     private route: ActivatedRoute,
@@ -312,65 +317,165 @@ export class ListeApprenantsComponent implements OnInit {
 
 
 
-  updateApprenant(): void {
-    if (this.apprenantForm.invalid || !this.selectedApprenant) {
-      return;
-    }
-
-    // Préparer les données du formulaire
-    const formData = new FormData();
-    formData.append('nom', this.apprenantForm.get('nom')?.value || '');
-    formData.append('prenom', this.apprenantForm.get('prenom')?.value || '');
-    formData.append('email', this.apprenantForm.get('email')?.value || '');
-    formData.append('telephone', this.apprenantForm.get('telephone')?.value || '');
-    formData.append('adresse', this.apprenantForm.get('adresse')?.value || '');
-    if (this.selectedPhoto) {
-      formData.append('photo', this.selectedPhoto);
-    }
-
-    // Appeler le service pour mettre à jour l'apprenant
-    this.apiService.updateApprenant(this.selectedApprenant.id, formData).subscribe({
-      next: (updatedData) => {
-        console.log('Apprenant modifié avec succès:', updatedData);
-
-        // Fermer le modal après le succès
-        const modalElement = document.getElementById('editApprenantModal');
-        if (modalElement) {
-          const modal = bootstrap.Modal.getInstance(modalElement);
-          modal?.hide();
-        }
-
-        // Rafraîchir la liste des apprenants
-        this.loadApprenants();
-
-        // Réinitialiser les champs et variables
-        this.selectedApprenant = null;
-        this.selectedPhoto = null;
-        this.apprenantForm.reset();
-        this.apiErrors = {}; // Réinitialiser les erreurs après un succès
-      },
-      error: (err) => {
-        console.error('Erreur lors de la modification de l\'apprenant:', err);
-
-        // Gestion des erreurs renvoyées par l'API
-        if (err.error && err.error.errors) {
-          // Erreurs spécifiques provenant de l'API (par exemple, validation)
-          this.apiErrors = err.error.errors;
-        } else if (err.error && err.error.message) {
-          // Message général provenant de l'API
-          this.apiErrors = { general: [err.error.message] };
-        } else {
-          // Message d'erreur générique
-          this.apiErrors = { general: ['Une erreur inconnue est survenue.'] };
-        }
-      }
-    });
+  updateApprenantProfile(): void {
+  if (this.apprenantForm.invalid || !this.selectedApprenant) {
+    this.apprenantForm.markAllAsTouched();
+    return;
   }
+
+  // ✅ Vérifier si une photo est sélectionnée
+  if (this.selectedPhoto) {
+    console.log('=== MODIFICATION APPRENANT AVEC PHOTO ===');
+    this.updateApprenantWithPhoto();
+  } else {
+    console.log('=== MODIFICATION APPRENANT SANS PHOTO ===');
+    this.updateApprenantWithoutPhoto();
+  }
+}
+
+// 🖼️ Méthode pour update AVEC photo (FormData)
+private updateApprenantWithPhoto(): void {
+  const formData = new FormData();
+  
+  // Ajouter tous les champs texte
+  formData.append('nom', this.apprenantForm.get('nom')?.value?.trim() || '');
+  formData.append('prenom', this.apprenantForm.get('prenom')?.value?.trim() || '');
+  formData.append('email', this.apprenantForm.get('email')?.value?.trim() || '');
+  formData.append('telephone', this.apprenantForm.get('telephone')?.value?.trim() || '');
+  formData.append('adresse', this.apprenantForm.get('adresse')?.value?.trim() || '');
+  
+  // Champs spécifiques aux apprenants
+  if (this.apprenantForm.get('cohorte_id')?.value) {
+    formData.append('cohorte_id', this.apprenantForm.get('cohorte_id')?.value);
+  }
+  
+  // Mot de passe si nécessaire
+  if (this.showPasswordField && this.apprenantForm.get('password')?.value) {
+    formData.append('password', this.apprenantForm.get('password')?.value);
+  }
+  
+  // 🖼️ Ajouter la photo
+  if (this.selectedPhoto) {
+    formData.append('photo', this.selectedPhoto, this.selectedPhoto.name);
+  }
+  
+  // 🔧 IMPORTANT: Ajouter _method=PUT pour Laravel
+  formData.append('_method', 'PUT');
+  
+  console.log('=== DEBUG PHOTO APPRENANT ===');
+  console.log('selectedPhoto:', this.selectedPhoto);
+  console.log('selectedPhoto name:', this.selectedPhoto?.name);
+  console.log('selectedPhoto size:', this.selectedPhoto?.size);
+  console.log('selectedPhoto type:', this.selectedPhoto?.type);
+  
+  console.log('=== CONTENU FORMDATA APPRENANT ===');
+  formData.forEach((value, key) => {
+    if (value instanceof File) {
+      console.log(`FormData ${key}:`, value, '(File object)');
+    } else {
+      console.log(`FormData ${key}:`, value);
+    }
+  });
+  
+  console.log('Envoi avec FormData (photo incluse) pour apprenant');
+  
+  // 🚀 Appel API avec FormData - CORRIGÉ: utiliser apiService au lieu de departementService
+  this.apiService.updateApprenantWithPhoto(this.selectedApprenant!.id, formData).subscribe({
+    next: (response) => {
+      console.log('=== RÉPONSE SERVEUR APPRENANT COMPLÈTE ===');
+      console.log('Response brute:', response);
+      console.log('Response.photo:', response.photo);
+      
+      this.handleApprenantUpdateSuccess(response);
+    },
+    error: (err) => {
+      console.error('❌ Erreur update apprenant avec photo:', err);
+      this.handleApprenantUpdateError(err);
+    }
+  });
+}
+
+// 📝 Méthode pour update SANS photo (JSON)
+private updateApprenantWithoutPhoto(): void {
+  const apprenantData: any = {
+    nom: this.apprenantForm.get('nom')?.value?.trim(),
+    prenom: this.apprenantForm.get('prenom')?.value?.trim(),
+    email: this.apprenantForm.get('email')?.value?.trim(),
+    telephone: this.apprenantForm.get('telephone')?.value?.trim(),
+    adresse: this.apprenantForm.get('adresse')?.value?.trim()
+  };
+
+  // Champs spécifiques aux apprenants
+  if (this.apprenantForm.get('cohorte_id')?.value) {
+    apprenantData.cohorte_id = this.apprenantForm.get('cohorte_id')?.value;
+  }
+
+  if (this.showPasswordField && this.apprenantForm.get('password')?.value) {
+    apprenantData.password = this.apprenantForm.get('password')?.value;
+  }
+  
+  console.log('Données JSON apprenant envoyées:', apprenantData);
+  
+  // 🚀 CORRIGÉ: utiliser apiService au lieu de departementService
+  this.apiService.updateApprenant(this.selectedApprenant!.id, apprenantData).subscribe({
+    next: (response) => {
+      this.handleApprenantUpdateSuccess(response);
+    },
+    error: (err) => {
+      this.handleApprenantUpdateError(err);
+    }
+  });
+}
+
+// 🎉 Gérer le succès pour apprenant
+private handleApprenantUpdateSuccess(response: any): void {
+  console.log('✅ Mise à jour apprenant réussie:', response);
+  
+  // Mettre à jour la liste locale
+  const index = this.apprenants.findIndex(a => a.id === this.selectedApprenant!.id);
+  if (index !== -1) {
+    console.log('Apprenant AVANT mise à jour:', this.apprenants[index]);
+    
+    // Fusionner les nouvelles données
+    this.apprenants[index] = { ...this.apprenants[index], ...response };
+    
+    console.log('Apprenant APRÈS mise à jour:', this.apprenants[index]);
+    
+    this.filteredApprenants = [...this.apprenants];
+  }
+  
+  // Fermer modal et nettoyer
+  const modal = bootstrap.Modal.getInstance(document.getElementById('editApprenantModal'));
+  modal?.hide();
+  this.selectedApprenant = null;
+  this.selectedPhoto = null; // 🧹 Nettoyer la photo
+  
+  // Message de succès
+  this.successMessage = 'Apprenant modifié avec succès';
+  this.showSuccessMessage = true;
+  setTimeout(() => this.showSuccessMessage = false, 3000);
+}
+
+// ❌ Gérer les erreurs pour apprenant
+private handleApprenantUpdateError(err: any): void {
+  console.error('❌ Erreur lors de la mise à jour apprenant:', err);
+  
+  if (err.error && err.error.errors) {
+    this.apiErrors = err.error.errors;
+  } else if (err.error && err.error.message) {
+    this.errorMessage = err.error.message;
+    this.showErrorMessage = true;
+    setTimeout(() => {
+      this.showErrorMessage = false;
+      this.errorMessage = null;
+    }, 5000);
+  }
+}
 
 
   isImporting: boolean = false;
-  showSuccessMessage: boolean = false;
-  successMessage: string = '';
+  // showSuccessMessage: boolean = false;
+  // successMessage: string = '';
   importSummary: { success: number, errors: string[] } = {
     success: 0,
     errors: []

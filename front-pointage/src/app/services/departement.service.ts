@@ -60,14 +60,38 @@ deleteEmploye(id: string): Observable<any> {
 }
 
 
-// Dans departement.service.ts
-updateEmploye(id: string, formData: FormData): Observable<any> {
-  return this.http.put<{ message: string; data: any }>(`${this.apiUrl}/utilisateurs/modifierUser/${id}`, formData)
-    .pipe(
-      map(response => response.data)
-    );
+// updateEmploye(id: string, formData: FormData): Observable<any> {
+//   return this.http.put(`${this.apiUrl}/utilisateurs/${id}`, formData).pipe(
+//     map((response: any) => response.data)
+//   );
+// }
+
+updateEmploye(id: string, employeData: any): Observable<any> {
+  return this.http.put(`${this.apiUrl}/utilisateurs/${id}`, employeData, {
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  }).pipe(
+    map((response: any) => response.data)
+  );
 }
 
+
+// ✅ NOUVELLE MÉTHODE pour FormData (avec photo)
+updateEmployeWithFormData(id: string, formData: FormData): Observable<any> {
+  return this.http.put(`${this.apiUrl}/utilisateurs/${id}`, formData).pipe(
+    map((response: any) => response.data)
+  );
+  // Note: Pas de headers Content-Type pour FormData, le navigateur le gère automatiquement
+}
+
+// Dans votre departement.service.ts
+updateEmployeWithPhoto(id: string, formData: FormData): Observable<any> {
+  // 🔧 Utiliser POST avec _method=PUT pour contourner le problème Laravel
+  return this.http.post(`${this.apiUrl}/utilisateurs/${id}`, formData).pipe(
+    map((response: any) => response.data)
+  );
+}
 
 
 getUserById(id: string): Observable<any> {
