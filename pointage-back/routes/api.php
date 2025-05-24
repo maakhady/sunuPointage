@@ -152,6 +152,13 @@ Route::get('pointages/utilisateurs', [PointageController::class, 'getUtilisateur
 Route::post('/absences/enregistrer', [PointageController::class, 'enregistrerAbsences']);
 Route::get('/absences/verifier', [PointageController::class, 'verifierAbsence']);
 
+// Routes pour les graphiques de pointage
+Route::prefix('pointages')->group(function () {
+    Route::get('graphique-presences-jour', [PointageController::class, 'graphiquePresencesParJour']);
+    Route::get('graphique-presence-globale', [PointageController::class, 'graphiquePresenceGlobale']);
+    Route::get('graphique-top-retards', [PointageController::class, 'graphiqueTopRetards']);
+});
+
 
 
 //oubli mot de passe

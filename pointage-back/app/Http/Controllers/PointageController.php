@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 
+use Illuminate\Http\JsonResponse;
 
 
 class PointageController extends Controller
@@ -679,4 +680,432 @@ public function getUtilisateursPointes(Request $request)
             ], 500);
         }
     }
+
+
+
+  /**
+ * Données pour graphique des présences par jour (VERSION MONGODB)
+ * @param Request $request
+ * @return JsonResponse
+ */
+public function graphiquePresencesParJour(Request $request)
+{
+    try {
+        $validator = Validator::make($request->all(), [
+            'debut' => 'required|date',
+            'fin' => 'required|date|after_or_equal:debut',
+            'cohorte_id' => 'sometimes|string',
+            'departement_id' => 'sometimes|string',
+            'type' => 'sometimes|in:apprenant,employe'
+        ]);
+
+        if ($validator->fails()) {
+            \Log::error('Validation échouée pour graphique présences jour', [
+                'errors' => $validator->errors()->toArray()
+            ]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Erreur de validation',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        $debut = Carbon::parse($request->debut)->startOfDay();
+        $fin = Carbon::parse($request->fin)->endOfDay();
+
+        \Log::info('Début requête graphique présences MongoDB', [
+            'debut' => $debut->toISOString(),
+            'fin' => $fin->toISOString(),
+            'filters' => $request->all()
+        ]);
+
+        // Construction de la requête de base pour MongoDB
+        $query = Pointage::whereBetween('date', [$debut, $fin]);
+
+        // Application des filtres avec relations MongoDB
+        if ($request->cohorte_id || $request->departement_id || $request->type) {
+            $query->whereHas('utilisateur', function($q) use ($request) {
+                if ($request->cohorte_id) {
+                    $q->where('cohorte_id', $request->cohorte_id);
+                }
+                if ($request->departement_id) {
+                    $q->where('departement_id', $request->departement_id);
+                }
+                if ($request->type) {
+                    $q->where('type', $request->type);
+                }
+            });
+        }
+
+        // Récupérer tous les pointages dans la période
+        $pointages = $query->orderBy('date', 'asc')->get();
+
+        \Log::info('Pointages récupérés', [
+            'count' => $pointages->count()
+        ]);
+
+        // Grouper les données par jour (traitement en PHP car MongoDB ne supporte pas SELECT complexe)
+        $groupedData = [];
+        
+        foreach ($pointages as $pointage) {
+            $jour = Carbon::parse($pointage->date)->format('Y-m-d');
+            
+            if (!isset($groupedData[$jour])) {
+                $groupedData[$jour] = [
+                    'jour' => $jour,
+                    'total_pointages' => 0,
+                    'presents' => 0,
+                    'retards' => 0,
+                    'absents' => 0
+                ];
+            }
+            
+            $groupedData[$jour]['total_pointages']++;
+            
+            // Comptage selon les conditions
+            if ($pointage->estPresent && !$pointage->estRetard) {
+                $groupedData[$jour]['presents']++;
+            } elseif ($pointage->estRetard) {
+                $groupedData[$jour]['retards']++;
+            } elseif (!$pointage->estPresent) {
+                $groupedData[$jour]['absents']++;
+            }
+        }
+
+        // Trier par date
+        ksort($groupedData);
+
+        // Formater les données pour le graphique
+        $labels = [];
+        $dataPresents = [];
+        $dataRetards = [];
+        $dataAbsents = [];
+
+        foreach ($groupedData as $donnee) {
+            $labels[] = Carbon::parse($donnee['jour'])->format('d/m/Y');
+            $dataPresents[] = $donnee['presents'];
+            $dataRetards[] = $donnee['retards'];
+            $dataAbsents[] = $donnee['absents'];
+        }
+
+        // Si aucune donnée, retourner un graphique vide
+        if (empty($labels)) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Aucune donnée disponible pour la période sélectionnée',
+                'data' => [
+                    'labels' => [],
+                    'datasets' => [
+                        [
+                            'label' => 'Présents',
+                            'data' => [],
+                            'backgroundColor' => 'rgba(34, 197, 94, 0.8)',
+                            'borderColor' => 'rgba(34, 197, 94, 1)',
+                            'borderWidth' => 2
+                        ],
+                        [
+                            'label' => 'En retard',
+                            'data' => [],
+                            'backgroundColor' => 'rgba(251, 146, 60, 0.8)',
+                            'borderColor' => 'rgba(251, 146, 60, 1)',
+                            'borderWidth' => 2
+                        ],
+                        [
+                            'label' => 'Absents',
+                            'data' => [],
+                            'backgroundColor' => 'rgba(239, 68, 68, 0.8)',
+                            'borderColor' => 'rgba(239, 68, 68, 1)',
+                            'borderWidth' => 2
+                        ]
+                    ]
+                ]
+            ]);
+        }
+
+        \Log::info('Données formatées pour graphique', [
+            'labels_count' => count($labels),
+            'sample_data' => [
+                'labels' => array_slice($labels, 0, 3),
+                'presents' => array_slice($dataPresents, 0, 3),
+                'retards' => array_slice($dataRetards, 0, 3),
+                'absents' => array_slice($dataAbsents, 0, 3)
+            ]
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Données du graphique récupérées avec succès',
+            'data' => [
+                'labels' => $labels,
+                'datasets' => [
+                    [
+                        'label' => 'Présents',
+                        'data' => $dataPresents,
+                        'backgroundColor' => 'rgba(34, 197, 94, 0.8)',
+                        'borderColor' => 'rgba(34, 197, 94, 1)',
+                        'borderWidth' => 2
+                    ],
+                    [
+                        'label' => 'En retard',
+                        'data' => $dataRetards,
+                        'backgroundColor' => 'rgba(251, 146, 60, 0.8)',
+                        'borderColor' => 'rgba(251, 146, 60, 1)',
+                        'borderWidth' => 2
+                    ],
+                    [
+                        'label' => 'Absents',
+                        'data' => $dataAbsents,
+                        'backgroundColor' => 'rgba(239, 68, 68, 0.8)',
+                        'borderColor' => 'rgba(239, 68, 68, 1)',
+                        'borderWidth' => 2
+                    ]
+                ]
+            ],
+            'summary' => [
+                'total_jours' => count($labels),
+                'total_presents' => array_sum($dataPresents),
+                'total_retards' => array_sum($dataRetards),
+                'total_absents' => array_sum($dataAbsents)
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('Erreur graphique présences jour MongoDB', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'request' => $request->all()
+        ]);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Erreur lors de la récupération des données du graphique',
+            'error' => config('app.debug') ? $e->getMessage() : 'Erreur interne du serveur'
+        ], 500);
+    }
+}
+
+/**
+ * Version simple pour tester MongoDB
+ * @param Request $request
+ * @return JsonResponse
+ */
+public function graphiquePresencesJourSimple(Request $request)
+{
+    try {
+        $validator = Validator::make($request->all(), [
+            'debut' => 'required|date',
+            'fin' => 'required|date|after_or_equal:debut'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Erreur de validation',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        $debut = Carbon::parse($request->debut)->startOfDay();
+        $fin = Carbon::parse($request->fin)->endOfDay();
+
+        \Log::info('Test simple MongoDB', [
+            'debut' => $debut->toISOString(),
+            'fin' => $fin->toISOString()
+        ]);
+
+        // Test simple : récupérer tous les pointages
+        $pointages = Pointage::whereBetween('date', [$debut, $fin])
+            ->orderBy('date', 'asc')
+            ->get();
+
+        \Log::info('Pointages trouvés', [
+            'count' => $pointages->count(),
+            'sample' => $pointages->first()
+        ]);
+
+        // Grouper par jour
+        $groupedData = [];
+        
+        foreach ($pointages as $pointage) {
+            $jour = Carbon::parse($pointage->date)->format('Y-m-d');
+            
+            if (!isset($groupedData[$jour])) {
+                $groupedData[$jour] = [
+                    'presents' => 0,
+                    'retards' => 0,
+                    'absents' => 0
+                ];
+            }
+            
+            if ($pointage->estPresent && !$pointage->estRetard) {
+                $groupedData[$jour]['presents']++;
+            } elseif ($pointage->estRetard) {
+                $groupedData[$jour]['retards']++;
+            } else {
+                $groupedData[$jour]['absents']++;
+            }
+        }
+
+        // Créer les données pour le graphique
+        $labels = [];
+        $dataPresents = [];
+        $dataRetards = [];
+        $dataAbsents = [];
+
+        foreach ($groupedData as $jour => $donnee) {
+            $labels[] = Carbon::parse($jour)->format('d/m/Y');
+            $dataPresents[] = $donnee['presents'];
+            $dataRetards[] = $donnee['retards'];
+            $dataAbsents[] = $donnee['absents'];
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Test simple réussi',
+            'data' => [
+                'labels' => $labels,
+                'datasets' => [
+                    [
+                        'label' => 'Présents',
+                        'data' => $dataPresents,
+                        'backgroundColor' => 'rgba(34, 197, 94, 0.8)',
+                        'borderColor' => 'rgba(34, 197, 94, 1)',
+                        'borderWidth' => 2
+                    ],
+                    [
+                        'label' => 'En retard',
+                        'data' => $dataRetards,
+                        'backgroundColor' => 'rgba(251, 146, 60, 0.8)',
+                        'borderColor' => 'rgba(251, 146, 60, 1)',
+                        'borderWidth' => 2
+                    ],
+                    [
+                        'label' => 'Absents',
+                        'data' => $dataAbsents,
+                        'backgroundColor' => 'rgba(239, 68, 68, 0.8)',
+                        'borderColor' => 'rgba(239, 68, 68, 1)',
+                        'borderWidth' => 2
+                    ]
+                ]
+            ],
+            'debug' => [
+                'total_pointages' => $pointages->count(),
+                'grouped_days' => count($groupedData),
+                'sample_pointage' => $pointages->first()
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('Erreur test simple MongoDB', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Erreur serveur',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Graphique présence globale pour MongoDB
+ * @param Request $request
+ * @return JsonResponse
+ */
+public function graphiquePresenceGlobale(Request $request)
+{
+    try {
+        $validator = Validator::make($request->all(), [
+            'debut' => 'required|date',
+            'fin' => 'required|date|after_or_equal:debut',
+            'cohorte_id' => 'sometimes|string',
+            'departement_id' => 'sometimes|string',
+            'type' => 'sometimes|in:apprenant,employe'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Erreur de validation',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        $debut = Carbon::parse($request->debut)->startOfDay();
+        $fin = Carbon::parse($request->fin)->endOfDay();
+
+        $query = Pointage::whereBetween('date', [$debut, $fin]);
+
+        // Application des filtres
+        if ($request->cohorte_id || $request->departement_id || $request->type) {
+            $query->whereHas('utilisateur', function($q) use ($request) {
+                if ($request->cohorte_id) {
+                    $q->where('cohorte_id', $request->cohorte_id);
+                }
+                if ($request->departement_id) {
+                    $q->where('departement_id', $request->departement_id);
+                }
+                if ($request->type) {
+                    $q->where('type', $request->type);
+                }
+            });
+        }
+
+        $pointages = $query->get();
+
+        // Calcul des statistiques
+        $total = $pointages->count();
+        $presents_ponctuel = $pointages->where('estPresent', true)->where('estRetard', false)->count();
+        $retards = $pointages->where('estRetard', true)->count();
+        $absents = $pointages->where('estPresent', false)->count();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Statistiques globales récupérées avec succès',
+            'data' => [
+                'labels' => ['Présents à l\'heure', 'En retard', 'Absents'],
+                'datasets' => [
+                    [
+                        'data' => [$presents_ponctuel, $retards, $absents],
+                        'backgroundColor' => [
+                            'rgba(34, 197, 94, 0.8)',   // Vert pour présents
+                            'rgba(251, 146, 60, 0.8)',  // Orange pour retards
+                            'rgba(239, 68, 68, 0.8)'    // Rouge pour absents
+                        ],
+                        'borderColor' => [
+                            'rgba(34, 197, 94, 1)',
+                            'rgba(251, 146, 60, 1)',
+                            'rgba(239, 68, 68, 1)'
+                        ],
+                        'borderWidth' => 2
+                    ]
+                ]
+            ],
+            'stats' => [
+                'total' => $total,
+                'presents_ponctuel' => $presents_ponctuel,
+                'retards' => $retards,
+                'absents' => $absents,
+                'pourcentage_presence' => $total > 0 ? 
+                    round((($presents_ponctuel + $retards) / $total) * 100, 2) : 0,
+                'pourcentage_ponctualite' => $total > 0 ? 
+                    round(($presents_ponctuel / $total) * 100, 2) : 0
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('Erreur graphique présence globale MongoDB', [
+            'message' => $e->getMessage()
+        ]);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Erreur lors de la récupération des statistiques globales',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
 }

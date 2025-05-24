@@ -159,85 +159,216 @@ class UtilisateurController extends Controller
      * @param string $id Identifiant de l'utilisateur
      * @return \Illuminate\Http\JsonResponse Utilisateur mis à jour
      */
-    // public function update(UpdateUtilisateurRequest $request, $id)
-    // {
-    //     try {
-    //         $utilisateur = Utilisateur::findOrFail($id);
-    //         $data = $request->validated();
+    
 
-    //         if (isset($data['photo']) && $data['photo']) {
-    //             if ($utilisateur->photo) {
-    //                 Storage::delete($utilisateur->photo);
-    //             }
-    //             $data['photo'] = $this->uploadPhoto($data['photo']);
-    //         }
-
-    //         if (isset($data['password'])) {
-    //             $data['password'] = Hash::make($data['password']);
-    //             // unset($data['password']);
-    //         }
-
-    //         $utilisateur->update($data);
-
-    //         // Log de mise à jour
-    //         Journal::create([
-    //             'user_id' => Auth::id(),
-    //             'action' => 'modification_utilisateur',
-    //             'details' => [
-    //                 'utilisateur_id' => $utilisateur->id,
-    //                 'modifications' => $data,
-    //                 'timestamp' => now()
-    //             ]
-    //         ]);
-
-    //         return response()->json([
-    //             'status' => true,
-    //             'message' => 'Utilisateur mis à jour avec succès',
-    //             'data' => $utilisateur->fresh()
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => $e->getMessage()
-    //         ], $e->getCode() ?: 500);
-    //     }
-    // }
-
-    public function update(UpdateUtilisateurRequest $request, $id)
+ public function update(UpdateUtilisateurRequest $request, $id)
 {
     try {
-        $utilisateur = Utilisateur::findOrFail($id);
+        logger('=== DÉBUT UPDATE CONTROLLER ===');
+        logger('Content-Type: ' . $request->header('Content-Type'));
+        logger('Method: ' . $request->method());
+        logger('Has file photo: ' . ($request->hasFile('photo') ? 'OUI' : 'NON'));
+        logger('All input keys: ', array_keys($request->all()));
+        logger('Request has _method: ' . ($request->has('_method') ? $request->get('_method') : 'NON'));
+        
+        // 🔧 Vérifier si l'utilisateur existe
+        $utilisateur = Utilisateur::find($id);
+        if (!$utilisateur) {
+            logger('❌ Utilisateur non trouvé avec ID: ' . $id);
+            return response()->json([
+                'status' => false,
+                'message' => 'Utilisateur non trouvé'
+            ], 404);
+        }
+        
+        logger('✅ Utilisateur trouvé: ' . $utilisateur->nom);
+        
+        // 🔧 Récupérer les données validées
         $data = $request->validated();
-
-        if (isset($data['photo']) && $data['photo']) {
-            if ($utilisateur->photo) {
-                Storage::delete($utilisateur->photo);
+        logger('Data validées reçues: ', array_keys($data));
+        
+        // 🔧 Si pas de données validées, essayer de récupérer manuellement
+        if (empty($data)) {
+            logger('⚠️ Aucune donnée validée, récupération manuelle...');
+            $data = $request->except(['_method', '_token']);
+            logger('Data manuelles: ', array_keys($data));
+        }
+        
+        // 🔧 Gestion de la photo avec plus de sécurité
+        if ($request->hasFile('photo')) {
+            logger('📸 Traitement de la photo...');
+            
+            $photo = $request->file('photo');
+            logger('Photo info: ', [
+                'name' => $photo->getClientOriginalName(),
+                'size' => $photo->getSize(),
+                'type' => $photo->getMimeType(),
+                'valid' => $photo->isValid(),
+                'path' => $photo->path()
+            ]);
+            
+            // Vérifications de sécurité
+            if (!$photo->isValid()) {
+                logger('❌ Photo invalide');
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Photo invalide'
+                ], 400);
             }
-            $data['photo'] = $this->uploadPhoto($data['photo']);
+            
+            if ($photo->getSize() > 2048000) { // 2MB
+                logger('❌ Photo trop volumineuse: ' . $photo->getSize());
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Photo trop volumineuse (max 2MB)'
+                ], 400);
+            }
+            
+            // Vérifier le type MIME
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+            if (!in_array($photo->getMimeType(), $allowedTypes)) {
+                logger('❌ Type de fichier non autorisé: ' . $photo->getMimeType());
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Type de fichier non autorisé'
+                ], 400);
+            }
+            
+            // Encodage en base64
+            $photoPath = $photo->path();
+            logger('Photo path: ' . $photoPath);
+            
+            if (!file_exists($photoPath)) {
+                logger('❌ Fichier photo introuvable: ' . $photoPath);
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Erreur lors du traitement de la photo'
+                ], 500);
+            }
+            
+            $photoContent = file_get_contents($photoPath);
+            if ($photoContent === false) {
+                logger('❌ Impossible de lire le contenu de la photo');
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Erreur lors de la lecture de la photo'
+                ], 500);
+            }
+            
+            $data['photo'] = [
+                'data' => base64_encode($photoContent),
+                'mime_type' => $photo->getMimeType(),
+                'name' => $photo->getClientOriginalName()
+            ];
+            
+            logger('✅ Photo encodée, taille base64: ' . strlen($data['photo']['data']));
         }
 
-        $utilisateur->update($data);
+        // 🔧 Gestion du mot de passe
+        if (isset($data['password']) && !empty($data['password'])) {
+            $data['password'] = bcrypt($data['password']);
+            logger('🔐 Mot de passe crypté');
+        } else {
+            unset($data['password']);
+            logger('🔐 Pas de mot de passe');
+        }
 
-        Journal::create([
-            'user_id' => Auth::id(),
-            'action' => 'modification_utilisateur',
-            'details' => [
-                'utilisateur_id' => $utilisateur->id,
-                'modifications' => $data,
-                'timestamp' => now()
-            ]
-        ]);
+        logger('📝 Données finales à sauvegarder: ', array_keys($data));
+        
+        // 🔧 Sauvegarde avec gestion d'erreur
+        $originalData = $utilisateur->toArray();
+        
+        try {
+            $utilisateur->update($data);
+            logger('✅ Update MongoDB réussi');
+        } catch (\Exception $updateException) {
+            logger('❌ Erreur update MongoDB: ' . $updateException->getMessage());
+            logger('Stack trace: ' . $updateException->getTraceAsString());
+            
+            return response()->json([
+                'status' => false,
+                'message' => 'Erreur lors de la mise à jour en base de données: ' . $updateException->getMessage()
+            ], 500);
+        }
+
+        // 🔧 Journal des modifications (VERSION CORRIGÉE)
+        try {
+            // Créer une version safe pour la comparaison
+            $dataSafeForComparison = $data;
+            $originalSafeForComparison = $originalData;
+            
+            // Exclure la photo de la comparaison car elle a des formats différents
+            if (isset($dataSafeForComparison['photo'])) {
+                unset($dataSafeForComparison['photo']);
+            }
+            if (isset($originalSafeForComparison['photo'])) {
+                unset($originalSafeForComparison['photo']);
+            }
+            
+            // Comparer seulement les champs texte
+            $modificationsTexte = array_diff_assoc($dataSafeForComparison, $originalSafeForComparison);
+            
+            // Créer la liste finale des modifications
+            $modifications = array_keys($modificationsTexte);
+            
+            // Ajouter la photo aux modifications si elle existe
+            if (isset($data['photo'])) {
+                $modifications[] = 'photo';
+            }
+            
+            logger('📝 Modifications détectées: ', $modifications);
+            
+            if (!empty($modifications)) {
+                Journal::create([
+                    'user_id' => Auth::id(),
+                    'action' => 'modification_utilisateur',
+                    'details' => [
+                        'utilisateur_id' => $utilisateur->_id,
+                        'modifications' => $modifications,
+                        'timestamp' => now()
+                    ]
+                ]);
+                logger('📄 Journal créé');
+            }
+        } catch (\Exception $journalException) {
+            logger('⚠️ Erreur journal (non bloquante): ' . $journalException->getMessage());
+        }
+
+        // 🔧 Préparer la réponse
+        $utilisateurFresh = $utilisateur->fresh();
+        
+        if ($utilisateurFresh->photo && is_array($utilisateurFresh->photo)) {
+            $utilisateurFresh->photo = [
+                'url' => 'data:' . $utilisateurFresh->photo['mime_type'] . ';base64,' . $utilisateurFresh->photo['data'],
+                'name' => $utilisateurFresh->photo['name']
+            ];
+            logger('🖼️ Photo transformée pour réponse');
+        } else {
+            logger('📷 Pas de photo ou format incorrect: ', [$utilisateurFresh->photo]);
+        }
+
+        logger('✅ === FIN UPDATE CONTROLLER SUCCÈS ===');
 
         return response()->json([
             'status' => true,
             'message' => 'Utilisateur mis à jour avec succès',
-            'data' => $utilisateur->fresh()
+            'data' => $utilisateurFresh
         ]);
-    } catch (\Exception $e) {
+        
+    } catch (\Throwable $e) {
+        logger('💥 ERREUR CRITIQUE: ' . $e->getMessage());
+        logger('Fichier: ' . $e->getFile() . ':' . $e->getLine());
+        logger('Stack trace: ' . $e->getTraceAsString());
+        
         return response()->json([
             'status' => false,
-            'message' => $e->getMessage()
-        ], $e->getCode() ?: 500);
+            'message' => 'Erreur serveur: ' . $e->getMessage(),
+            'debug' => config('app.debug') ? [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ] : null
+        ], 500);
     }
 }
 
